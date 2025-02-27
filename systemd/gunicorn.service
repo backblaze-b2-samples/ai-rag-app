@@ -1,0 +1,25 @@
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+Type=notify
+# the specific user that our service will run as
+User=administrator
+Group=administrator
+# another option for an even more restricted service is
+# DynamicUser=yes
+# see http://0pointer.net/blog/dynamic-users-with-systemd.html
+RuntimeDirectory=gunicorn
+# Set this to the location of the ai-rag-app directory
+WorkingDirectory=/home/administrator/ai-rag-app
+# Set the path to gunicorn appropriately
+ExecStart=/home/administrator/ai-rag-app/.venv/bin/gunicorn --config python:config.gunicorn mysite.wsgi
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

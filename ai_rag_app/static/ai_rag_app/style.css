@@ -1,0 +1,60 @@
+html, body {
+    height:100%;
+}
+
+.history {
+    overflow-y: auto;
+}
+
+.prompt {
+    height: 75px;
+}
+
+.human, .ai, .dots {
+    max-width: 67%;
+    clear: both;
+}
+
+.human {
+    float: right;
+    text-align: right;
+    border-radius: 20px;
+    background-color: rgba(232, 232, 232, 0.5);
+    padding: 10px 20px 10px 20px;
+}
+
+.human > p {
+    margin-bottom: 0;
+}
+
+.ai, .dots {
+    float: left;
+}
+
+.ai > p {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.dots {
+    font-size: large;
+    font-weight: bold;
+}
+
+.time {
+    font-size: small;
+    color: #a9a9a9;
+}
+
+.align-self-center > h1 {
+    text-align: center;
+}
+
+.slash, h2 > a {
+    color: #c6c6c6;
+    text-decoration: none;
+}
+
+.question {
+    height: 4em;
+}
