@@ -82,7 +82,9 @@ function submitOnEnter(event) {
             })
             .catch((error) => {
               console.error(error);
-              showAnswer(error, 0, dots, event.target);
+              showAnswer("I'm afraid I can't do that, Dave - there was a problem submitting your question. " +
+                  "If you're technically inclined, look in the JavaScript console for more detail.",
+                  0, dots, event.target);
             })
       }
     }
