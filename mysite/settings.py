@@ -39,11 +39,7 @@ ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', '.trycloudflare.com', '172.
 # Application definition
 
 INSTALLED_APPS = [
-    # Must list ai_rag_app.apps.AiRagAppConfig first, since it overrides commands in djhuey and Django itself
     'ai_rag_app.apps.AiRagAppConfig',
-
-    'huey.contrib.djhuey',
-    "huey_django_orm",
 
     'django.contrib.contenttypes',
     'django.contrib.sessions',

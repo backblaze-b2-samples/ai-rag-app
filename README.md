@@ -2,23 +2,13 @@
 
 This app shows you how to implement a simple AI chatbot website that uses a large language model (LLM) and retrieval augmented generation (RAG) to answer questions based on a collection of PDFs stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples. 
 
-## Prerequisites
-
-### Poppler
-
-On macOS
-
-```shell
-brew install poppler
-```
-
 ## Installation
 
 Clone this repository onto your host, `cd` into the local repository directory, then use `pip install` to install dependencies:
 
 ```bash
-git clone git@github.com:backblaze-b2-samples/ai-rag-app-part-1
-cd ai-rag-app-part-1
+git clone git@github.com:backblaze-b2-samples/ai-rag-app
+cd ai-rag-app
 pip install -r requirements.txt
 ```
 
