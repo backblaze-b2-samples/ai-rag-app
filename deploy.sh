@@ -5,21 +5,6 @@ PROTOCOL=http
 SERVER_HOST="172.16.60.26"
 REMOTE_USER="administrator"
 ZIP_BASE="ai-rag-app"
-TREEISH=${1:-HEAD}
-MODE=${2:-staging}
-
-if [ "${MODE}" == "production" ]; then
-  DEST_DIR="ai-rag-app"
-  SERVICE="gunicorn"
-  DEST_PORT="80"
-elif [ "${MODE}" == "staging" ]; then
-  DEST_DIR="ai-rag-app-staging"
-  SERVICE="staging"
-  DEST_PORT="8000"
-else
-  echo "Unknown mode"
-  exit 1
-fi
 
 function deploy {
   # unzip archive, reinstall Python requirements and restart Gunicorn
@@ -51,8 +36,11 @@ function deploy {
       echo "    No change to requirements.txt"
     fi
     echo "    Restarting service"
-    sudo systemctl restart '"${SERVICE}"
+    sudo systemctl restart '"${SERVICE}"'
+    echo "    Done with remote commands"'
 }
+
+TREEISH="${1:-HEAD}"
 
 if [ "${TREEISH}" == "HEAD" ]; then
   # If we're using HEAD, we probably want everything checked in
@@ -66,8 +54,32 @@ if [ "${TREEISH}" == "HEAD" ]; then
 fi
 
 # Ensure we have a short hash
-TREEISH=$(git rev-parse --short "${TREEISH}")
-ARCHIVE="${ZIP_BASE}-${TREEISH}.zip"
+HASH=$(git rev-parse --short "${TREEISH}^{commit}" 2> /dev/null)
+if [ $? -eq 0 ]; then
+  shift
+else
+  TREEISH="HEAD"
+  HASH=$(git rev-parse --short "${TREEISH}^{commit}" 2> /dev/null)
+fi
+
+MODE="${1:-staging}"
+
+if [ "${MODE}" == "production" ]; then
+  DEST_DIR="ai-rag-app"
+  SERVICE="gunicorn"
+  DEST_PORT="80"
+elif [ "${MODE}" == "staging" ]; then
+  DEST_DIR="ai-rag-app-staging"
+  SERVICE="staging"
+  DEST_PORT="8000"
+else
+  echo "Unknown mode: ${1}"
+  exit 1
+fi
+
+ARCHIVE="${ZIP_BASE}-${HASH}.zip"
+
+echo "Deploying ${TREEISH} to ${MODE}"
 
 if ssh "${REMOTE_USER}@${SERVER_HOST}" 'ls ' "${DEST_DIR}" ' &> /dev/null'; then
   echo "Getting current commit from ${SERVER_HOST}"
@@ -85,7 +97,11 @@ if ssh "${REMOTE_USER}@${SERVER_HOST}" 'ls ' "${DEST_DIR}" ' &> /dev/null'; then
     fi
   else
     echo "Current commit is ${CURRENT_COMMIT_ID}"
-    REBUILD_VENV=$(git diff --name-only "${TREEISH}" "${CURRENT_COMMIT_ID}" -- requirements.txt)
+    REBUILD_VENV=$(git diff --name-only "${HASH}" "${CURRENT_COMMIT_ID}" -- requirements.txt 2> /dev/null | head -n 1)
+    if [ $? -ne 0 ]; then
+      echo "Error diffing ${HASH} against ${CURRENT_COMMIT_ID} - forcing the .venv rebuild"
+      REBUILD_VENV="yes"
+    fi
   fi
 else
   echo "Creating ${DEST_DIR} on ${SERVER_HOST}"
@@ -95,8 +111,8 @@ fi
 # Now exit on errors
 set -e
 
-echo "Zipping ${TREEISH} into ${ARCHIVE}"
-git archive -o "${ARCHIVE}" "${TREEISH}"
+echo "Zipping ${HASH} into ${ARCHIVE}"
+git archive -o "${ARCHIVE}" "${HASH}"
 
 echo "Copying archive, .env and creds"
 scp -rq "${ARCHIVE}" .env creds "${REMOTE_USER}@${SERVER_HOST}:${DEST_DIR}/"
@@ -105,7 +121,7 @@ scp -rq "${ARCHIVE}" .env creds "${REMOTE_USER}@${SERVER_HOST}:${DEST_DIR}/"
 set +e
 
 echo "Executing remote commands"
-deploy "${TREEISH}" "${DEST_DIR}" "${REBUILD_VENV}"
+deploy "${HASH}" "${DEST_DIR}" "${REBUILD_VENV}"
 
 echo "Allowing service to restart"
 sleep 3
