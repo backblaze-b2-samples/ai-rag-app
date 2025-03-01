@@ -10,7 +10,6 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 # Want a single process, so sessions are easy
 workers = 1
 
-# threads = 1
 threads = int(os.getenv("PYTHON_MAX_THREADS", multiprocessing.cpu_count() * 2))
 
 print(f'Gunicorn configured with {threads} threads')

@@ -1,5 +1,4 @@
 import logging
-import os
 from abc import ABC, abstractmethod
 from operator import itemgetter
 
@@ -16,7 +15,6 @@ from langchain_core.runnables.utils import Output, Input
 from ai_rag_app.types import CollectionSpec, ModelSpec
 from ai_rag_app.utils.chain import ChainElapsedTime
 from ai_rag_app.utils.vectorstore import open_vectorstore
-from mysite import settings
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +60,7 @@ class RAG(AbstractRAG):
     @staticmethod
     def _create_retriever(collection_spec: CollectionSpec) -> BaseRetriever:
         # Open the vector store at the configured location and return its retriever
-        path = os.path.join(
-            settings.BUCKET_NAME,
-            settings.VECTOR_DB_LOCATION,
-            collection_spec['path']
-        )
-        vector_db_uri = f's3://{path}'
+        vector_db_uri = collection_spec['vector_store_location']
         logger.info(f'Opening {collection_spec["name"]} vector store at {vector_db_uri}')
         vectorstore = open_vectorstore(collection_spec['embeddings'], vector_db_uri, check_table_exists=True)
         return vectorstore.as_retriever()

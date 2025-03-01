@@ -10,7 +10,8 @@ class EmbeddingsSpec(TypedDict):
 
 class CollectionSpec(TypedDict):
     name: str
-    path: str
+    source_pdf_location: str
+    vector_store_location: str
     embeddings: EmbeddingsSpec
 
 class LLMSpec(TypedDict):

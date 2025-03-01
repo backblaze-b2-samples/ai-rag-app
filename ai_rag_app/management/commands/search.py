@@ -1,11 +1,10 @@
 import logging
-import os
 from time import perf_counter
 
 from django.core.management import BaseCommand
 
 from ai_rag_app.utils.vectorstore import open_vectorstore
-from django.conf import settings
+from mysite.settings import COLLECTION
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +20,6 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
-            "collection",
-            type=str,
-            choices=list(set([c['path'] for c in settings.COLLECTIONS])),
-            help="Collection to search",
-        )
-
-        parser.add_argument(
             "--max-results",
             nargs='?',
             type=int,
@@ -35,16 +27,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        path = os.path.join(
-            os.environ["BUCKET_NAME"],
-            os.environ["VECTOR_DB_LOCATION"],
-            options['collection'],
-        )
-        vector_db_uri = f's3://{path}'
-        logger.info(f'Opening {options['collection']} vector store at {vector_db_uri}')
-        # TODO - add support for $combined collection
-        collection_spec = next(collection for collection in settings.COLLECTIONS if collection['path'] == options['collection'])
-        vectorstore = open_vectorstore(collection_spec['embeddings'], vector_db_uri, check_table_exists=True)
+        vector_db_uri = COLLECTION['vector_store_location']
+        logger.info(f'Opening vector store at {vector_db_uri}')
+        vectorstore = open_vectorstore(COLLECTION['embeddings'], vector_db_uri, check_table_exists=True)
 
         start_time = perf_counter()
         search_results = vectorstore.similarity_search(options['search-string'], k=options['max_results'])

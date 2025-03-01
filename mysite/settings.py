@@ -182,16 +182,6 @@ HUEY = {
 }
 
 # App config
-BUCKET_NAME = os.environ['BUCKET_NAME']
-# Location within bucket
-PDF_LOCATION = os.environ['PDF_LOCATION']
-# Location within bucket
-VECTOR_DB_LOCATION = os.environ['VECTOR_DB_LOCATION']
-# Location within VECTOR_DB_LOCATION for collection
-DOCS_COLLECTION_PATH = 'docs'
-
-EVENT_NOTIFICATIONS_SIGNING_SECRET = os.environ['EVENT_NOTIFICATIONS_SIGNING_SECRET']
-
 TOPIC = "Backblaze products"
 
 CHAT_MODEL: ModelSpec = {
@@ -204,9 +194,11 @@ CHAT_MODEL: ModelSpec = {
     },
 }
 
+# Change source_pdf_location and vector_store_location to match your environment
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
-    'path': 'docs',
+    'source_pdf_location': 's3://metadaddy-langchain-demo/pdfs',
+    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs',
     'embeddings': {
         'cls': OpenAIEmbeddings,
         'init_args': {

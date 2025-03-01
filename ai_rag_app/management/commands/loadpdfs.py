@@ -1,4 +1,3 @@
-import os
 from fnmatch import fnmatch
 
 import boto3
@@ -6,9 +5,10 @@ from django.core.management.base import BaseCommand
 from langchain_community.document_loaders import S3FileLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from ai_rag_app.types import EmbeddingsSpec
+from ai_rag_app.utils.object_store import parse_s3_uri
 from ai_rag_app.utils.vectorstore import delete_vectorstore, create_vectorstore
-from django.conf import settings
+
+from mysite.settings import COLLECTION, TEXT_SPLITTER_CHUNK_SIZE, TEXT_SPLITTER_CHUNK_OVERLAP
 
 
 class Command(BaseCommand):
@@ -43,25 +43,21 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         b2_client = boto3.client('s3')
 
-        embeddings: EmbeddingsSpec = settings.COLLECTION['embeddings']
-
-        location = str(os.path.join(
-            settings.VECTOR_DB_LOCATION,
-            settings.DOCS_COLLECTION_PATH,
-        ))
+        vector_store_location = COLLECTION['vector_store_location']
+        source_pdf_location = COLLECTION['source_pdf_location']
 
         if options['mode'] == 'overwrite':
-            delete_vectorstore(b2_client, settings.BUCKET_NAME, location, self.stdout)
+            delete_vectorstore(b2_client, vector_store_location, self.stdout)
 
-        vectorstore = create_vectorstore(embeddings, settings.BUCKET_NAME, location, self.stdout)
+        vectorstore = create_vectorstore(COLLECTION['embeddings'], vector_store_location, self.stdout)
 
-        self.stdout.write(f'Loading PDF data from s3://{settings.BUCKET_NAME}/{settings.PDF_LOCATION} '
-                          f'in pages of {options["page_size"]} results')
+        self.stdout.write(f'Loading PDF data from {source_pdf_location} in pages of {options["page_size"]} results')
 
+        bucket_name, source_pdf_path = parse_s3_uri(source_pdf_location)
         paginator = b2_client.get_paginator('list_objects_v2')
         page_iterator = paginator.paginate(
-            Bucket=settings.BUCKET_NAME,
-            Prefix=settings.PDF_LOCATION,
+            Bucket=bucket_name,
+            Prefix=source_pdf_path,
             PaginationConfig={'PageSize': options['page_size']}
         )
 
@@ -71,19 +67,19 @@ class Command(BaseCommand):
         skip_count = 0
         split_count = 0
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=settings.TEXT_SPLITTER_CHUNK_SIZE,
-            chunk_overlap=settings.TEXT_SPLITTER_CHUNK_OVERLAP
+            chunk_size=TEXT_SPLITTER_CHUNK_SIZE,
+            chunk_overlap=TEXT_SPLITTER_CHUNK_OVERLAP
         )
         for page in page_iterator:
             self.stdout.write(f'Successfully retrieved page {page_count + 1} containing {page["KeyCount"]} '
-                              f'result(s) from {settings.BUCKET_NAME}/{settings.PDF_LOCATION}')
+                              f'result(s) from {source_pdf_location}')
 
             docs = []
             for obj in page['Contents']:
                 # Only process PDF files
                 if fnmatch(obj['Key'], '*.pdf'):
                     self.stdout.write(f'Loading {obj["Key"]}')
-                    loader = S3FileLoader(settings.BUCKET_NAME, obj['Key'])
+                    loader = S3FileLoader(bucket_name, obj['Key'])
                     docs += loader.load()
                     doc_count += 1
                 else:
@@ -110,5 +106,5 @@ class Command(BaseCommand):
                           f'skipped {skip_count} result(s).')
         table = vectorstore._table  # noqa
         self.stdout.write(
-            self.style.SUCCESS(f'Created LanceDB vector store for {settings.DOCS_COLLECTION_PATH}. "{table.name}" table contains {table.count_rows()} rows')
+            self.style.SUCCESS(f'Created LanceDB vector store at {vector_store_location}. "{table.name}" table contains {table.count_rows()} rows')
         )
