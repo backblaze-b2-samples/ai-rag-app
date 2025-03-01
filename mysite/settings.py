@@ -198,7 +198,7 @@ CHAT_MODEL: ModelSpec = {
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_pdf_location': 's3://metadaddy-langchain-demo/pdfs',
-    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs',
+    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs/openai',
     'embeddings': {
         'cls': OpenAIEmbeddings,
         'init_args': {
