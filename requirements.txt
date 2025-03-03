@@ -25,4 +25,8 @@ str2bool~=1.1
 # Specify CPU-only torch to avoid dragging in Nvidia libs on Linux
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch~=2.6.0
+# unstructured works with plain text files, HTML, XML, JSON and Emails by default
+# You can add more extras such as docx, and pptx to work with more file types,
+# or use unstructured[all-docs] to support all document types. Note that you may
+# need to install more dependencies to work with more file types.
 unstructured[pdf]~=0.16.20

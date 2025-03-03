@@ -10,7 +10,7 @@ class EmbeddingsSpec(TypedDict):
 
 class CollectionSpec(TypedDict):
     name: str
-    source_pdf_location: str
+    source_data_location: str
     vector_store_location: str
     embeddings: EmbeddingsSpec
 

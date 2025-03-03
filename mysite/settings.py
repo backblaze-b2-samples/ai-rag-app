@@ -15,6 +15,7 @@ from pathlib import Path
 
 from langchain import globals as langchain_globals
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from ai_rag_app.rag import RAG
@@ -185,30 +186,30 @@ HUEY = {
 TOPIC = "Backblaze products"
 
 CHAT_MODEL: ModelSpec = {
-    'name': 'OpenAI',
+    'name': 'Llama',
     'llm': {
-        'cls': ChatOpenAI,
+        'cls': ChatOllama,
         'init_args': {
-            'model': "gpt-4o-mini",
+            'model': "llama3.1:8b",
         }
     },
 }
 
-# Change source_pdf_location and vector_store_location to match your environment
+# Change source_data_location and vector_store_location to match your environment
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
-    'source_pdf_location': 's3://metadaddy-langchain-demo/pdfs',
-    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs/openai',
+    'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
+    'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/nomic',
     'embeddings': {
-        'cls': OpenAIEmbeddings,
+        'cls': OllamaEmbeddings,
         'init_args': {
-            'model': "text-embedding-3-large",
+            'model': "nomic-embed-text",
         },
     },
 }
 
 # We only want to initialize the RAG instance when we're being started by runserver (RUN_MAIN)
-# or gunicorn (SERVER_SOFTWARE) and not by loadcsv, loadpdf etc
+# or gunicorn (SERVER_SOFTWARE) and not by loaddata
 if os.environ.get('RUN_MAIN') or os.environ.get('SERVER_SOFTWARE'):
     RAG_INSTANCE = RAG(COLLECTION, CHAT_MODEL)
 

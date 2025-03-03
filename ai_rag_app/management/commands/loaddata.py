@@ -1,5 +1,3 @@
-from fnmatch import fnmatch
-
 import boto3
 from django.core.management.base import BaseCommand
 from langchain_community.document_loaders import S3FileLoader
@@ -12,54 +10,85 @@ from mysite.settings import COLLECTION, TEXT_SPLITTER_CHUNK_SIZE, TEXT_SPLITTER_
 
 
 class Command(BaseCommand):
-    help = "Loads PDFs from the configured bucket into the vector database"
+    help = 'Loads data from the configured bucket into the vector database'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--page-size",
+            '--page-size',
             default=1000,
             nargs='?',
             type=int,
-            help="Page size for retrieving and processing PDFs. Default = Max = 1000",
+            help='Page size for retrieving and processing data. Default = Max = 1000',
         )
 
         parser.add_argument(
-            "--max-results",
+            '--max-results',
             default=-1,
             nargs='?',
             type=int,
-            help="Maximum number of results to process. Default = process all results",
+            help='Maximum number of results to process. Default = process all results',
         )
 
         parser.add_argument(
-            "--mode",
+            '--mode',
             default='overwrite',
-            const='overwrite',
             nargs='?',
             choices=['overwrite', 'append'],
-            help="Overwrite existing vector store or append to it. Default = overwrite",
+            help='Overwrite existing vector store or append to it. Default = overwrite',
         )
+
+        parser.add_argument(
+            '--extensions',
+            default='pdf',
+            nargs='?',
+            help='Comma-separated list of file extensions to load. Default = pdf',
+        )
+
+        parser.add_argument(
+            '--load-all',
+            action='store_true',
+            help='Load all documents regardless of file extension.',
+        )
+
+        parser.add_argument(
+            '--source-data-location',
+            default=COLLECTION['source_data_location'],
+            nargs='?',
+            help=f'Override source data location.',
+        )
+
+        parser.add_argument(
+            '--vector-store-location',
+            default=COLLECTION['vector_store_location'],
+            nargs='?',
+            help=f'Override vector store location.',
+        )
+
 
     def handle(self, *args, **options):
         b2_client = boto3.client('s3')
 
-        vector_store_location = COLLECTION['vector_store_location']
-        source_pdf_location = COLLECTION['source_pdf_location']
+        source_data_location = options['source_data_location']
+        vector_store_location = options['vector_store_location']
 
         if options['mode'] == 'overwrite':
             delete_vectorstore(b2_client, vector_store_location, self.stdout)
 
         vectorstore = create_vectorstore(COLLECTION['embeddings'], vector_store_location, self.stdout)
 
-        self.stdout.write(f'Loading PDF data from {source_pdf_location} in pages of {options["page_size"]} results')
+        self.stdout.write(f'Loading data data from {source_data_location} in pages of {options["page_size"]} results')
 
-        bucket_name, source_pdf_path = parse_s3_uri(source_pdf_location)
+        bucket_name, source_data_path = parse_s3_uri(source_data_location)
         paginator = b2_client.get_paginator('list_objects_v2')
         page_iterator = paginator.paginate(
             Bucket=bucket_name,
-            Prefix=source_pdf_path,
+            Prefix=source_data_path,
             PaginationConfig={'PageSize': options['page_size']}
         )
+
+        extensions = tuple(f'.{ext.strip()}' for ext in options['extensions'].split(','))
+        def should_load_file(key: str):
+            return options['load_all'] or key.lower().endswith(extensions)
 
         done = False
         page_count = 0
@@ -71,19 +100,19 @@ class Command(BaseCommand):
             chunk_overlap=TEXT_SPLITTER_CHUNK_OVERLAP
         )
         for page in page_iterator:
-            self.stdout.write(f'Successfully retrieved page {page_count + 1} containing {page["KeyCount"]} '
-                              f'result(s) from {source_pdf_location}')
+            self.stdout.write(f'Successfully retrieved page {page_count + 1} containing {page['KeyCount']} '
+                              f'result(s) from {source_data_location}')
 
             docs = []
             for obj in page['Contents']:
-                # Only process PDF files
-                if fnmatch(obj['Key'], '*.pdf'):
-                    self.stdout.write(f'Loading {obj["Key"]}')
-                    loader = S3FileLoader(bucket_name, obj['Key'])
+                object_key = obj['Key']
+                if should_load_file(object_key):
+                    self.stdout.write(f'Loading {object_key}')
+                    loader = S3FileLoader(bucket_name, object_key)
                     docs += loader.load()
                     doc_count += 1
                 else:
-                    self.stdout.write(f'Skipping {obj["Key"]}')
+                    self.stdout.write(f'Skipping {object_key}')
                     skip_count += 1
                 if options['max_results'] is not None and doc_count + skip_count == options['max_results']:
                     done = True

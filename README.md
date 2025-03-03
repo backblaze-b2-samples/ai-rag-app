@@ -1,12 +1,10 @@
 # Building an AI Chatbot Website with Backblaze B2 + LangChain 
 
-This app shows you how to implement a simple AI chatbot website that uses a large language model (LLM) and retrieval augmented generation (RAG) to answer questions based on a collection of PDFs stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
+This app shows you how to implement a simple AI chatbot website that uses a large language model (LLM) and retrieval augmented generation (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
 
-You can ingest your own set of PDFs from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Either way, you will need access to an LLM. The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), but you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as a model with some additional instrumentation - each answer includes the execution time of the RAG chain.
+You can ingest your own set of documents from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Once you have configured your vector store, you can use the app's web UI to ask questions; the app will use the vector database and LLM to generate an answer. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier questions and answers in a natural way.
 
-You can use a custom command in the app to load PDFs from a Backblaze B2 Bucket into a vector database stored in Backblaze B2 (a one-time process), or use our sample vector database preloaded with the Backblaze documentation.
-
-You can then use the app's web UI to ask questions; the app will use the vector database and LLM to generate an answer. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier questions and answers in a natural way.
+The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), but you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as a model with some additional instrumentation - each answer includes the execution time of the RAG chain.
 
 TODO - video
 
@@ -18,8 +16,8 @@ The app is written in Python and leverages the [Django web framework](https://ww
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
 * [Configuration](#configuration)
-* [Upload PDF Documents to Backblaze B2](#upload-pdf-documents-to-backblaze-b2)
-* [Load PDF Documents into the Vector Store](#load-pdf-documents-into-the-vector-store)
+* [Upload Documents to Backblaze B2](#upload-documents-to-backblaze-b2)
+* [Load Documents into the Vector Store](#load-documents-into-the-vector-store)
 * [Run the Web App](#run-the-web-app)
 * [Running in Gunicorn](#running-in-gunicorn)
 * [Running Gunicorn as a service with nginx](#running-gunicorn-as-a-service-with-nginx)
@@ -76,8 +74,8 @@ credentials to do so:
 
 ```dotenv
 # Read-only credentials for accessing the Backblaze documentation vector store
-AWS_ACCESS_KEY_ID=00415f935cf4dcb00000006aa
-AWS_SECRET_ACCESS_KEY=K004PE97GYz9liatnEHqjXZhqJMAzJ0
+AWS_ACCESS_KEY_ID=0045f0571db506a000000001a
+AWS_SECRET_ACCESS_KEY=K004xV4KpvEGEwH+475+kvCojpKHhlY
 AWS_DEFAULT_REGION=us-west-004
 AWS_ENDPOINT_URL=https://s3.us-west-004.backblazeb2.com
 ```
@@ -91,8 +89,7 @@ has been removed, and there is no need to run `python manage.py migrate` or `pyt
 
 Towards the bottom of `mysite/settings.py`, you will see the configuration for the LLM and vector store embeddings. The `RAG` 
 class, in `ai_rag_app/rag.py`, uses these values to create instances of the API wrapper objects. Note that the locations in the
-`COLLECTION` configuration point to the Backblaze documentation PDFs and vector store. You can use them with the read-only 
-credentials above or change them to match your environment.  
+`COLLECTION` configuration in the sample code point to the Backblaze documentation PDFs and vector store. You can use them with the read-only credentials above or change them to match your environment.  
 
 ```python
 CHAT_MODEL: ModelSpec = {
@@ -105,11 +102,11 @@ CHAT_MODEL: ModelSpec = {
     },
 }
 
-# Change source_pdf_location and vector_store_location to match your environment
+# Change source_data_location and vector_store_location to match your environment
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
-    'source_pdf_location': 's3://metadaddy-langchain-demo/pdfs',
-    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs',
+    'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
+    'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs',
     'embeddings': {
         'cls': OpenAIEmbeddings,
         'init_args': {
@@ -121,11 +118,16 @@ COLLECTION: CollectionSpec = {
 
 You can change the chat model class from `ChatOpenAI` to 
 [any subclass of `langchain_core.language_models.chat_models.BaseChatModel`](https://python.langchain.com/docs/integrations/chat/). 
-The contents of the `init_args` dict will be passed as arguments to the chat model constructor. 
+The contents of the `init_args` dict will be passed as arguments to the chat model constructor. You must change the `model` argument to match the implementation you are using, and you may add additional arguments as required.
 
-For example, you could use Google Gemini 2.0 Flash by reconfiguring `CHAT_MODEL` like this:
+For example, you could use [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash) by reconfiguring `CHAT_MODEL` like this:
 
 ```python
+# At top of file:
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+...
+
 CHAT_MODEL: ModelSpec = {
     'name': 'Google Gemini',
     'llm': {
@@ -151,9 +153,14 @@ GOOGLE_APPLICATION_CREDENTIALS=<Location of Google service account key file>
 You can similarly reconfigure the embedding model class, using [any subclass of `langchain_core.embeddings.embeddings.Embeddings`](https://python.langchain.com/docs/integrations/text_embedding/). Again, using Google as an example:
 
 ```python
+# At top of file:
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+...
+
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
-    'source_pdf_location': 's3://my-bucket/pdfs',
+    'source_data_location': 's3://my-bucket/my_data',
     'vector_store_location': 's3://my-bucket/vectordb/docs',
     'embeddings': {
         'cls': GoogleGenerativeAIEmbeddings,
@@ -165,24 +172,26 @@ COLLECTION: CollectionSpec = {
 }
 ```
 
-## Upload PDF Documents to Backblaze B2
+Technically, you can mix and match chat and embedding models, but, if you were to use different providers, you would need an API key for each one.
 
-If your PDF documents are not already in Backblaze B2, you must upload them. You can use any S3-compatible GUI or CLI tool
-to do so. It's helpful to use `pdfs/` or some similar prefix to keep them organized and separate from the vector store.
+## Upload Documents to Backblaze B2
 
-## Load PDF Documents into the Vector Store
+If your documents are not already in Backblaze B2, you must upload them. You can use any S3-compatible GUI or CLI tool
+to do so. It's helpful to use a prefix such as `docs/` or `pdfs/` to keep them organized and separate from the vector store.
+
+## Load Documents into the Vector Store
 
 Once you have configured your Backblaze B2 and AI API credentials in `.env` or your environment, and your data locations 
-in `mysite/settings.py`, you can load a set of PDF documents into the vector store.
+in `mysite/settings.py`, you can load a set of documents into the vector store.
 
-Use the custom `loadpdfs` command:
+Use the custom `loaddata` command:
 
 ```console
-% python manage.py loadpdfs
-Deleting existing LanceDB vector store at s3://metadaddy-langchain-demo/vectordb/docs
-Creating LanceDB vector store at s3://metadaddy-langchain-demo/vectordb/docs
-Loading PDF data from s3://metadaddy-langchain-demo/pdfs in pages of 1000 results
-Successfully retrieved page 1 containing 618 result(s) from s3://metadaddy-langchain-demo/pdfs
+% python manage.py loaddata
+Deleting existing LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs
+Creating LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs
+Loading data from s3://blze-ev-ai-rag-app/pdfs in pages of 1000 results
+Successfully retrieved page 1 containing 618 result(s) from s3://blze-ev-ai-rag-app/pdfs
 Skipping pdfs/.bzEmpty
 Skipping pdfs/cloud_storage/.bzEmpty
 Loading pdfs/cloud_storage/cloud-storage-about-backblaze-b2-cloud-storage.pdf
@@ -197,18 +206,18 @@ Split batch into 2758 chunks
 [2025-02-28T01:26:11Z WARN  lance_table::io::commit] Using unsafe commit handler. Concurrent writes may result in data loss. Consider providing a commit handler that prevents conflicting writes.
 Added chunks to vector store
 Added 614 document(s) containing 2758 chunks to vector store; skipped 4 result(s).
-Created LanceDB vector store at s3://metadaddy-langchain-demo/vectordb/docs. "vectorstore" table contains 2758 rows
+Created LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs. "vectorstore" table contains 2758 rows
 ```
 
 To test the vector database, you can use the custom `search` command:
 
 ```console
  % python manage.py search 'Which B2 native APIs would I use to upload large files?' 
-2025-03-01 02:38:07,740 ai_rag_app.management.commands.search INFO     Opening vector store at s3://metadaddy-langchain-demo/vectordb/docs/openai
+2025-03-01 02:38:07,740 ai_rag_app.management.commands.search INFO     Opening vector store at s3://blze-ev-ai-rag-app/vectordb/docs/openai
 2025-03-01 02:38:07,740 ai_rag_app.utils.vectorstore DEBUG    Populating AWS environment variables from the b2 profile
 Found 4 docs in 2.30 seconds
 2025-03-01 02:38:11,074 ai_rag_app.management.commands.search INFO     
-page_content='Parts of a large file can be uploaded and copied in parallel, which can significantly reduce the time it takes to upload terabytes of data. Each part can be  anywhere from 5 MB to 5 GB, and you can pick the size that is most convenient for your application. For best upload performance, Backblaze recommends that you use the recommendedPartSize parameter that is returned by the b2_authorize_account operation.  To upload larger files and data sets, you can use the command-line interface (CLI), the Native API, or an integration, such as Cyberduck.  Usage for Large Files  Generally, large files are treated the same as small files. The costs for the API calls are the same.  You are charged for storage for the parts that you uploaded or copied. Usage is counted from the time the part is stored. When you call the b2_finish_large_file' metadata={'source': 's3://metadaddy-langchain-demo/pdfs/cloud_storage/cloud-storage-large-files.pdf'}
+page_content='Parts of a large file can be uploaded and copied in parallel, which can significantly reduce the time it takes to upload terabytes of data. Each part can be  anywhere from 5 MB to 5 GB, and you can pick the size that is most convenient for your application. For best upload performance, Backblaze recommends that you use the recommendedPartSize parameter that is returned by the b2_authorize_account operation.  To upload larger files and data sets, you can use the command-line interface (CLI), the Native API, or an integration, such as Cyberduck.  Usage for Large Files  Generally, large files are treated the same as small files. The costs for the API calls are the same.  You are charged for storage for the parts that you uploaded or copied. Usage is counted from the time the part is stored. When you call the b2_finish_large_file' metadata={'source': 's3://blze-ev-ai-rag-app/pdfs/cloud_storage/cloud-storage-large-files.pdf'}
 ...
 ```
 
@@ -218,7 +227,7 @@ To start the development server on its default port, 8000:
 
 ```console
 % python manage.py runserver
-2025-03-01 02:39:45,605 ai_rag_app.rag INFO     Opening Docs vector store at s3://metadaddy-langchain-demo/vectordb/docs/openai
+2025-03-01 02:39:45,605 ai_rag_app.rag INFO     Opening Docs vector store at s3://blze-ev-ai-rag-app/vectordb/docs/openai
 2025-03-01 02:39:45,605 ai_rag_app.utils.vectorstore DEBUG    Populating AWS environment variables from the b2 profile
 Performing system checks...
 
@@ -234,7 +243,7 @@ listen on the standard HTTP port on all interfaces, you would use:
 
 ```console
 % python manage.py runserver 0.0.0.0:80
-2025-03-01 02:40:18,048 ai_rag_app.rag INFO     Opening Docs vector store at s3://metadaddy-langchain-demo/vectordb/docs/openai
+2025-03-01 02:40:18,048 ai_rag_app.rag INFO     Opening Docs vector store at s3://blze-ev-ai-rag-app/vectordb/docs/openai
 2025-03-01 02:40:18,048 ai_rag_app.utils.vectorstore DEBUG    Populating AWS environment variables from the b2 profile
 Performing system checks...
 
@@ -289,12 +298,12 @@ As an alternative to using an online LLM such as OpenAI or Google Gemini, you ca
 
 [Download](https://ollama.com/download), install and run the Ollama desktop app.
 
-For this tutorial, you'll need a general purpose model like [Llama 3.2](https://ollama.com/library/llama3.2:3b) and a text embedding model such as [`nomic-embed-text`](https://ollama.com/library/nomic-embed-text). There are two variants of Llama 3.2: the default 3B parameters version and a 1B parameters version. We successfully used `llama3.2:3b` with the RAG app. 
+For this tutorial, you'll need a general purpose model like [Llama 3.1](https://ollama.com/library/llama3.1) and a text embedding model such as [`nomic-embed-text`](https://ollama.com/library/nomic-embed-text). There are three variants of Llama 3.1; we successfully used the default 8B parameters version, `llama3.1:8b`, with the RAG app. If you have more capable hardware, you might want to try the 70B or 405B versions. 
 
 Fetch the models from the command line:
 
 ```console
-ollama pull llama3.2:3b
+ollama pull llama3.1:8b
 ollama pull nomic-embed-text
 ```
 
@@ -314,21 +323,26 @@ from lancedb.embeddings import OllamaEmbeddings
 Edit the `CHAT_MODEL` and `COLLECTION` configurations lower down in the same file:
 
 ```python
+# At top of file:
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+
+...
+
 CHAT_MODEL: ModelSpec = {
     'name': 'Llama',
     'llm': {
         'cls': ChatOllama,
         'init_args': {
-            'model': "llama3.2:3b",
+            'model': "llama3.1:8b",
         }
     },
 }
 
-# Change source_pdf_location and vector_store_location to match your environment
+# Change source_data_location and vector_store_location to match your environment
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
-    'source_pdf_location': 's3://metadaddy-langchain-demo/pdfs',
-    'vector_store_location': 's3://metadaddy-langchain-demo/vectordb/docs/nomic',
+    'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
+    'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/nomic',
     'embeddings': {
         'cls': OllamaEmbeddings,
         'init_args': {
@@ -338,4 +352,6 @@ COLLECTION: CollectionSpec = {
 }
 ```
 
-Run the server as above. Llama 3.2 answered questions using the Backblaze documentation vector store in a similar amount of time as OpenAI GPT‑4o mini on a 2021 MacBook Pro with an Apple M1 Pro chip and 32 GB of memory.
+You will need to [load data into the vector store](#load-documents-into-the-vector-store) and [run the web app](#run-the-web-app) as explained above.
+
+In our experience, Llama 3.1, running on a 2021 MacBook Pro with an Apple M1 Pro chip and 32 GB of memory, took between 10 and 30 seconds to generated an answer using the Backblaze documentation vector store. This is about double the time taken by GPT‑4o mini via the OpenAI API.   
