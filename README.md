@@ -4,9 +4,28 @@ This app shows you how to implement a simple AI chatbot website that uses a larg
 
 You can ingest your own set of PDFs from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Either way, you will need access to an LLM. The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), but you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as a model with some additional instrumentation - each answer includes the execution time of the RAG chain.
 
+You can use a custom command in the app to load PDFs from a Backblaze B2 Bucket into a vector database stored in Backblaze B2 (a one-time process), or use our sample vector database preloaded with the Backblaze documentation.
+
+You can then use the app's web UI to ask questions; the app will use the vector database and LLM to generate an answer. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier questions and answers in a natural way.
+
 TODO - video
 
 The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) as the starting point for the app.
+
+## Contents
+
+<!-- TOC -->
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [Configuration](#configuration)
+* [Upload PDF Documents to Backblaze B2](#upload-pdf-documents-to-backblaze-b2)
+* [Load PDF Documents into the Vector Store](#load-pdf-documents-into-the-vector-store)
+* [Run the Web App](#run-the-web-app)
+* [Running in Gunicorn](#running-in-gunicorn)
+* [Running Gunicorn as a service with nginx](#running-gunicorn-as-a-service-with-nginx)
+* [Running in Docker](#running-in-docker)
+* [Running a local LLM](#running-a-local-llm)
+<!-- TOC -->
 
 ## Prerequisites
 
@@ -63,7 +82,7 @@ AWS_DEFAULT_REGION=us-west-004
 AWS_ENDPOINT_URL=https://s3.us-west-004.backblazeb2.com
 ```
 
-Note that you must still supply your own API key for OpenAI, an alternate online AI service, or configure a local LLM (see below). 
+Note that you must still supply your own API key for OpenAI or an alternate online AI service, or configure a local LLM (see below). 
 
 ### Django Configuration
 
