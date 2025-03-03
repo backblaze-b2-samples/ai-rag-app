@@ -71,13 +71,6 @@ ENV GUNICORN_LOGLEVEL="${GUNICORN_LOGLEVEL}" \
     PATH="${PATH}:/home/python/.local/bin" \
     USER="python"
 
-# Dummy values for env vars referenced in settings.py so migrate will run
-ENV BUCKET_NAME="dummy" \
-    PDF_LOCATION="dummy" \
-    VECTOR_DB_LOCATION="dummy" \
-    EVENT_NOTIFICATIONS_SIGNING_SECRET="dummy" \
-    DEEPSEEK_API_KEY="dummy"
-
 # Send the equivalent of a ctrl-c when stopping the container so app shuts down gracefully
 STOPSIGNAL SIGINT
 
