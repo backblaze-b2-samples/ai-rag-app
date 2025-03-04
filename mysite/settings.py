@@ -207,7 +207,7 @@ COLLECTION: CollectionSpec = {
 }
 
 # We only want to initialize the RAG instance when we're being started by runserver (RUN_MAIN)
-# or gunicorn (SERVER_SOFTWARE) and not by loaddata
+# or gunicorn (SERVER_SOFTWARE) and not by load_vector_store
 if os.environ.get('RUN_MAIN') or os.environ.get('SERVER_SOFTWARE'):
     RAG_INSTANCE = RAG(COLLECTION, CHAT_MODEL)
 

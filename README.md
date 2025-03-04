@@ -39,11 +39,30 @@ The app is written in Python and leverages the [Django web framework](https://ww
 
 ## Installation
 
-Clone this repository onto your host, `cd` into the local repository directory, then use `pip install` to install dependencies:
+Clone this repository onto your host, then `cd` into the local repository directory.
 
-```console
+```shell
 git clone git@github.com:backblaze-b2-samples/ai-rag-app
 cd ai-rag-app
+```
+
+[Python virtual environments](https://docs.python.org/3/library/venv.html) allow you to encapsulate a project's dependencies; we recommend that you create a virtual environment thus:
+
+```shell
+python3 -m venv .venv
+```
+
+You must then activate the virtual environment before installing dependencies:
+
+```shell
+source .venv/bin/activate
+```
+
+You will need to reactivate the virtual environment, with the same command, if you close your Terminal window and return to work with the app later.
+
+Now you can use `pip install` to install dependencies:
+
+```shell
 pip install -r requirements.txt
 ```
 
@@ -221,10 +240,10 @@ to do so. It's helpful to use a prefix such as `docs/` or `pdfs/` to keep them o
 Once you have configured your Backblaze B2 and AI API credentials in `.env` or your environment, and your data locations 
 in `mysite/settings.py`, you can load a set of documents into the vector store.
 
-Use the custom `loaddata` command:
+Use the custom `load_vector_store` command:
 
 ```console
-% python manage.py loaddata
+% python manage.py load_vector_store
 Deleting existing LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs
 Creating LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs
 Loading data from s3://blze-ev-ai-rag-app/pdfs in pages of 1000 results
@@ -248,10 +267,10 @@ Created LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs. "vectorst
 
 You can ignore the warning message - we will not be running more than one LanceDB writer concurrently, so we don't need to prevent conflicting writes. 
 
-To test the vector database, you can use the custom `search` command:
+To test the vector database, you can use the custom `search_vector_store` command:
 
 ```console
- % python manage.py search 'Which B2 native APIs would I use to upload large files?' 
+ % python manage.py search_vector_store 'Which B2 native APIs would I use to upload large files?' 
 2025-03-01 02:38:07,740 ai_rag_app.management.commands.search INFO     Opening vector store at s3://blze-ev-ai-rag-app/vectordb/docs/openai
 2025-03-01 02:38:07,740 ai_rag_app.utils.vectorstore DEBUG    Populating AWS environment variables from the b2 profile
 Found 4 docs in 2.30 seconds
