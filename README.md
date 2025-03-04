@@ -1,4 +1,4 @@
-# Building an Conversational AI Chatbot Website with Backblaze B2 + LangChain 
+# Building a Conversational AI Chatbot Website with Backblaze B2 + LangChain 
 
 This app shows you how to implement a simple Conversational AI chatbot website that uses a large language model (LLM) and [retrieval augmented generation]() (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
 
@@ -8,14 +8,19 @@ The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini
 
 TODO - video
 
-The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) in creating the app.
+The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) in creating the app.
 
 ## Contents
 
 <!-- TOC -->
+* [Contents](#contents)
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
 * [Configuration](#configuration)
+  * [API Credentials](#api-credentials)
+  * [Django Configuration](#django-configuration)
+  * [Using DeepSeek](#using-deepseek)
+  * [Using other LLMs](#using-other-llms)
 * [Upload Documents to Backblaze B2](#upload-documents-to-backblaze-b2)
 * [Load Documents into the Vector Store](#load-documents-into-the-vector-store)
 * [Run the Web App](#run-the-web-app)
@@ -23,6 +28,7 @@ The app is written in Python and leverages the [Django web framework](https://ww
 * [Running Gunicorn as a service with nginx](#running-gunicorn-as-a-service-with-nginx)
 * [Running in Docker](#running-in-docker)
 * [Running a local LLM](#running-a-local-llm)
+* [Next Steps](#next-steps)
 <!-- TOC -->
 
 ## Prerequisites
@@ -294,6 +300,8 @@ Ask a question relating to your document collection:
 
 <img width="1446" alt="Asking a question" src="https://github.com/user-attachments/assets/6d661be9-516c-411f-9995-61c1cf3a6c65" />
 
+
+<a id="debug-output"></a>
 By default, the log level is set to `DEBUG`, and the `RAG` class logs the question, the documents retrieved from the 
 vector store, and the answer from the LLM:
 
@@ -510,8 +518,29 @@ COLLECTION: CollectionSpec = {
 
 You will need to [load data into the vector store](#load-documents-into-the-vector-store) and [run the web app](#run-the-web-app) as explained above.
 
-In our experience, Llama 3.1, running on a 2021 MacBook Pro with an Apple M1 Pro chip and 32 GB of memory, took between 10 and 30 seconds to generated an answer using the Backblaze documentation vector store. This is about double the time taken by GPT‑4o mini via the OpenAI API.   
+In our experience, Llama 3.1, running on a 2021 MacBook Pro with an Apple M1 Pro chip and 32 GB of memory, took between 10 and 30 seconds to generate an answer using the Backblaze documentation vector store. This is about double the time taken by GPT‑4o mini via the OpenAI API.   
 
 ## Next Steps
 
-Sample app - no authentication, in-memory sessions, in-memory conversation history, add links to sources, etc
+This is a sample application, intended to quickly get you started building a conversational AI chatbot with RAG. There 
+are many ways you could extend the base application to better meet your needs. Here are a few ideas:
+
+* As you can see in the [debug output](#debug-output), the vector store contains the S3 URL of each document. You could add code to 
+generate a clickable `https` URL from the S3 URL and provide links to the documents alongside the LLM's response in the web UI.
+* The app uses the default Django support for synchronous I/O and LangChain's synchronous methods, for example, 
+[`invoke()`](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.invoke). 
+You could port the app to use [Django's asynchronous support](https://docs.djangoproject.com/en/5.1/topics/async/) and
+LangChain's asynchronous methods, such as [`ainvoke`](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.ainvoke).
+
+Again, in order to get you started quickly, we streamlined the application in several ways. There are a few areas to attend to 
+if you wish to run this app in a production setting:  
+
+* The app does not use a database for user accounts, or any other data, so there is no authentication. All access is anonymous.
+If you wished to have users log in, you would need to restore Django's
+[`AuthenticationMiddleware`](https://docs.djangoproject.com/en/5.1/ref/middleware/#module-django.contrib.auth.middleware) 
+class to the `MIDDLEWARE` configuration and [configure a database](https://docs.djangoproject.com/en/5.1/ref/databases/).
+* Sessions are stored in memory. As explained above, [you can use Gunicorn to scale the application to multiple threads](#running-in-gunicorn), 
+but you would need to [configure a Django session backend](https://docs.djangoproject.com/en/5.1/topics/http/sessions/) to 
+run the app in multiple processes or on multiple hosts.
+* Similarly, conversation history is stored in memory, so you would need to use a persistent message history implementation,
+such as [RedisChatMessageHistory](https://python.langchain.com/api_reference/redis/chat_message_history/langchain_redis.chat_message_history.RedisChatMessageHistory.html) to run the app in multiple processes or on multiple hosts.
