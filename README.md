@@ -1,14 +1,14 @@
-# Building an AI Chatbot Website with Backblaze B2 + LangChain 
+# Building an Conversational AI Chatbot Website with Backblaze B2 + LangChain 
 
-This app shows you how to implement a simple AI chatbot website that uses a large language model (LLM) and retrieval augmented generation (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
+This app shows you how to implement a simple Conversational AI chatbot website that uses a large language model (LLM) and [retrieval augmented generation]() (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
 
-You can ingest your own set of documents from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Once you have configured your vector store, you can use the app's web UI to ask questions; the app will use the vector database and LLM to generate an answer. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier questions and answers in a natural way.
+You can ingest your own set of documents from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Once you have configured your vector store, you can use the app's web UI to ask questions; the app will use the vector database and LLM to generate answers. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier exchanges in a natural way.
 
-The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), but you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as a model with some additional instrumentation - each answer includes the execution time of the RAG chain.
+The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), and I'll explain in this document how you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as inspiration, with some additional instrumentation - each answer includes the execution time of the RAG chain.
 
 TODO - video
 
-The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) as the starting point for the app.
+The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) in creating the app.
 
 ## Contents
 
@@ -92,6 +92,10 @@ class, in `ai_rag_app/rag.py`, uses these values to create instances of the API 
 `COLLECTION` configuration in the sample code point to the Backblaze documentation PDFs and vector store. You can use them with the read-only credentials above or change them to match your environment.  
 
 ```python
+# This is the text that appears in the web UI: "Ask me about {TOPIC}". You can change
+# it to match your use case
+TOPIC = "Backblaze products"
+
 CHAT_MODEL: ModelSpec = {
     'name': 'OpenAI',
     'llm': {
@@ -116,7 +120,32 @@ COLLECTION: CollectionSpec = {
 }
 ```
 
-You can change the chat model class from `ChatOpenAI` to 
+### Using DeepSeek
+
+Unfortunately, [DeepSeek R1 does not play nicely with LangChain](https://www.backblaze.com/blog/experimenting-with-deepseek-backblaze-b2-and-drive-stats/), but [DeepSeek V3](https://api-docs.deepseek.com/news/news1226) is OpenAI-API compatible and works well. You can swap it in with minimal changes:
+* In your `.env` file, or however you are setting environment variables, set `OPENAI_API_KEY` to your DeepSeek API key.
+* In `mysite/settings.py`, edit the `CHAT_MODEL` configuration:
+
+```python
+CHAT_MODEL: ModelSpec = {
+    'name': 'DeepSeek',
+    'llm': {
+        'cls': ChatOpenAI,
+        'init_args': {
+            'base_url': 'https://api.deepseek.com',
+            'model': 'deepseek-chat',
+        }
+    },
+}
+```
+
+Note: at present, DeepSeek does not have its own model for creating embeddings. Since document retrieval from the vector 
+store is independent of the LLM, you can use OpenAI `text-embedding-3-large` or another embedding model (see below) to
+load documents into the vector store.
+
+### Using other LLMs
+
+To use other LLMs, you can change the chat model class from `ChatOpenAI` to 
 [any subclass of `langchain_core.language_models.chat_models.BaseChatModel`](https://python.langchain.com/docs/integrations/chat/). 
 The contents of the `init_args` dict will be passed as arguments to the chat model constructor. You must change the `model` argument to match the implementation you are using, and you may add additional arguments as required.
 
@@ -173,6 +202,8 @@ COLLECTION: CollectionSpec = {
 ```
 
 Technically, you can mix and match chat and embedding models, but, if you were to use different providers, you would need an API key for each one.
+
+[Click here to learn how to use Ollama to run local models in the app](#running-a-local-llm).
 
 ## Upload Documents to Backblaze B2
 
@@ -253,6 +284,131 @@ Django version 5.1.6, using settings 'mysite.settings'
 Starting development server at http://0.0.0.0:80/
 Quit the server with CONTROL-C.
 ```
+
+Once the development server has started, open the URL, for example `http://127.0.0.1:8000/`, in your browser. You should 
+see the chatbot web UI:
+
+IMG
+
+Ask a question relating to your document collection:
+
+IMG
+
+By default, the log level is set to `DEBUG`, and the `RAG` class logs the question, the documents retrieved from the 
+vector store, and the answer from the LLM:
+
+```text
+2025-03-04 19:03:03,762 ai_rag_app.rag DEBUG    Synchronously invoking the chain with question: Tell me about application keys
+2025-03-04 19:03:06,931 ai_rag_app.utils.chain DEBUG    Documents from vector store: [
+    {
+        "py/object": "langchain_core.documents.base.Document",
+        "py/state": {
+            "__dict__": {
+                "id": null,
+                "metadata": {
+                    "source": "s3://metadaddy-langchain-demo/pdfs/cloud_storage/cloud-storage-back-up-storage-volumes-from-coreweave-to-backblaze-b2.pdf"
+                },
+                "page_content": "Application keys control access to your Backblaze B2 Cloud Storage account and the buckets that are contained in your account.\n\n3. Click Add a New Application Key, and enter an app key name.\n\nYou cannot search an app key by this name; therefore, app key names are not required to be globally unique.\n\n4. Select All or a specific bucket in the Allow Access to Bucket(s) dropdown menu.\n\n5. Optionally, select your access type (Read and Write, Read Only, or Write Only).\n\n6. Optionally, select the Allow List All Bucket Names checkbox (required for the B2 Native API b2_list_buckets and the S3-Compatible API S3 List Buckets\n\noperations).\n\n7. Optionally, enter a file name prefix to restrict application key access only to files with that prefix. Depending on what you selected in step #4, this limits\n\napplication key access to files with the specified prefix for all buckets or just the selected bucket.",
+                "type": "Document"
+            },
+            "__pydantic_extra__": null,
+            "__pydantic_fields_set__": {
+                "py/set": [
+                    "metadata",
+                    "page_content"
+                ]
+            },
+            "__pydantic_private__": null
+        }
+    },
+    {
+        "py/object": "langchain_core.documents.base.Document",
+        "py/state": {
+            "__dict__": {
+                "id": null,
+                "metadata": {
+                    "source": "s3://metadaddy-langchain-demo/pdfs/cloud_storage/cloud-storage-configure-s3-browser-with-backblaze-b2.pdf"
+                },
+                "page_content": "Application keys control access to your Backblaze B2 Cloud Storage account and the buckets that are contained in your account.\n\n3. Click Add a New Application Key, and enter an app key name.\n\nYou cannot search an app key by this name; therefore, app key names are not required to be globally unique.\n\n4. Select All or a specific bucket in the Allow Access to Bucket(s) dropdown menu.\n\n5. Optionally, select your access type (Read and Write, Read Only, or Write Only).\n\n6. Optionally, select the Allow List All Bucket Names checkbox (required for the B2 Native API b2_list_buckets and the S3-Compatible API S3 List Buckets\n\noperations).\n\n7. Optionally, enter a file name prefix to restrict application key access only to files with that prefix. Depending on what you selected in step #4, this limits\n\napplication key access to files with the specified prefix for all buckets or just the selected bucket.",
+                "type": "Document"
+            },
+            "__pydantic_extra__": null,
+            "__pydantic_fields_set__": {
+                "py/set": [
+                    "metadata",
+                    "page_content"
+                ]
+            },
+            "__pydantic_private__": null
+        }
+    },
+    {
+        "py/object": "langchain_core.documents.base.Document",
+        "py/state": {
+            "__dict__": {
+                "id": null,
+                "metadata": {
+                    "source": "s3://metadaddy-langchain-demo/pdfs/cloud_storage/cloud-storage-integrate-arq-7-immutable-backups-with-backblaze-b2.pdf"
+                },
+                "page_content": "Application keys control access to your Backblaze B2 Cloud Storage account and the buckets that are contained in your account.\n\n3. Click Add a New Application Key, and enter an app key name.\n\nYou cannot search an app key by this name; therefore, app key names are not required to be globally unique.\n\n4. Select All or a specific bucket in the Allow Access to Bucket(s) dropdown menu.\n\n5. Optionally, select your access type (Read and Write, Read Only, or Write Only).\n\n6. Optionally, select the Allow List All Bucket Names checkbox (required for the B2 Native API b2_list_buckets and the S3-Compatible API S3 List Buckets\n\noperations).\n\n7. Optionally, enter a file name prefix to restrict application key access only to files with that prefix. Depending on what you selected in step #4, this limits\n\napplication key access to files with the specified prefix for all buckets or just the selected bucket.",
+                "type": "Document"
+            },
+            "__pydantic_extra__": null,
+            "__pydantic_fields_set__": {
+                "py/set": [
+                    "metadata",
+                    "page_content"
+                ]
+            },
+            "__pydantic_private__": null
+        }
+    },
+    {
+        "py/object": "langchain_core.documents.base.Document",
+        "py/state": {
+            "__dict__": {
+                "id": null,
+                "metadata": {
+                    "source": "s3://metadaddy-langchain-demo/pdfs/cloud_storage/cloud-storage-configure-a-veeam-cloud-repository-recovery-from-backblaze-b2.pdf"
+                },
+                "page_content": "Application keys control access to your Backblaze B2 Cloud Storage account and the buckets that are contained in your account.\n\n3. Click Add a New Application Key, and enter an app key name.\n\nYou cannot search an app key by this name; therefore, app key names are not required to be globally unique.\n\n4. Select All or a specific bucket in the Allow Access to Bucket(s) dropdown menu.\n\n5. Optionally, select your access type (Read and Write, Read Only, or Write Only).\n\n6. Optionally, select the Allow List All Bucket Names checkbox (required for the B2 Native API b2_list_buckets and the S3-Compatible API S3 List Buckets\n\noperations).\n\n7. Optionally, enter a file name prefix to restrict application key access only to files with that prefix. Depending on what you selected in step #4, this limits\n\napplication key access to files with the specified prefix for all buckets or just the selected bucket.",
+                "type": "Document"
+            },
+            "__pydantic_extra__": null,
+            "__pydantic_fields_set__": {
+                "py/set": [
+                    "metadata",
+                    "page_content"
+                ]
+            },
+            "__pydantic_private__": null
+        }
+    }
+], {}
+2025-03-04 19:03:11,607 ai_rag_app.rag DEBUG    Received answer: Application keys control access to your Backblaze B2 Cloud Storage account and the buckets contained within that account. Here’s a brief overview of the steps involved in creating and managing application keys:
+
+1. **Creating an Application Key**: You begin by clicking "Add a New Application Key," where you can enter a name for the app key. It is important to note that the name you choose does not need to be globally unique since you cannot search for app keys by name.
+
+2. **Setting Bucket Access**: You can specify access for either all buckets or a specific bucket from the "Allow Access to Bucket(s)" dropdown menu.
+
+3. **Access Types**: You have the option to select the type of access, including Read and Write, Read Only, or Write Only.
+
+4. **List All Bucket Names**: Optionally, you can select the "Allow List All Bucket Names" checkbox. This is required if you plan to use certain API operations.
+
+5. **File Name Prefix**: Additionally, you can enter a file name prefix to restrict application key access to files that match the specified prefix. This applies depending on your selection in the bucket access step.
+
+These features allow you to manage and control how different applications interact with your cloud storage resources.
+```
+
+Ask a follow-up question to test conversation history:
+
+IMG
+
+Ask it to write some code for you:
+
+IMG
+
+If the chatbot seems to go off-topic, you can press the "New Chat" button to clear the history and start a new conversation.
 
 ## Running in Gunicorn
 
@@ -355,3 +511,7 @@ COLLECTION: CollectionSpec = {
 You will need to [load data into the vector store](#load-documents-into-the-vector-store) and [run the web app](#run-the-web-app) as explained above.
 
 In our experience, Llama 3.1, running on a 2021 MacBook Pro with an Apple M1 Pro chip and 32 GB of memory, took between 10 and 30 seconds to generated an answer using the Backblaze documentation vector store. This is about double the time taken by GPT‑4o mini via the OpenAI API.   
+
+## Next Steps
+
+Sample app - no authentication, in-memory sessions, in-memory conversation history, add links to sources, etc
