@@ -1,5 +1,7 @@
 import logging
 import traceback
+import jsonpickle
+import json
 from time import perf_counter
 from typing import Any, Optional
 from uuid import UUID
@@ -70,11 +72,12 @@ class ChainElapsedTime(BaseCallbackHandler):
             print(f"Chain error: {error}: {stack_trace}")
 
 
-def log_input(prefix: str) -> RunnableLambda:
+def log_input(prefix: str, pretty=False) -> RunnableLambda:
     """
     Log the data flowing through the chain at a given point
     """
     def dumper(data: Input, **kwargs: Any):
-        logger.debug(f'{prefix}: {data}, {kwargs}')
+        data_out = json.dumps(json.loads(jsonpickle.encode(data)), indent=4) if pretty else data
+        logger.debug(f'{prefix}: {data_out}, {kwargs}')
         return data
     return RunnableLambda(dumper)

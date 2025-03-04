@@ -13,7 +13,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.runnables.utils import Output, Input
 
 from ai_rag_app.types import CollectionSpec, ModelSpec
-from ai_rag_app.utils.chain import ChainElapsedTime
+from ai_rag_app.utils.chain import ChainElapsedTime, log_input
 from ai_rag_app.utils.vectorstore import open_vectorstore
 
 logger = logging.getLogger(__name__)
@@ -89,11 +89,13 @@ class RAG(AbstractRAG):
         )
 
         # Create the basic chain
+        # When loglevel is set to DEBUG, log_input will log the results from the vector store
         chain = (
             {
                 "context": (
                     itemgetter("question")
                     | retriever
+                    | log_input('Documents from vector store', pretty=True)
                 ),
                 "question": itemgetter("question"),
                 "history": itemgetter("history"),
