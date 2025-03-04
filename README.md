@@ -288,11 +288,11 @@ Quit the server with CONTROL-C.
 Once the development server has started, open the URL, for example `http://127.0.0.1:8000/`, in your browser. You should 
 see the chatbot web UI:
 
-IMG
+<img width="1446" alt="Chatbot web UI" src="https://github.com/user-attachments/assets/b6125ed1-ebea-4814-b3e7-d462bec37273" />
 
 Ask a question relating to your document collection:
 
-IMG
+<img width="1446" alt="Asking a question" src="https://github.com/user-attachments/assets/6d661be9-516c-411f-9995-61c1cf3a6c65" />
 
 By default, the log level is set to `DEBUG`, and the `RAG` class logs the question, the documents retrieved from the 
 vector store, and the answer from the LLM:
@@ -402,11 +402,11 @@ These features allow you to manage and control how different applications intera
 
 Ask a follow-up question to test conversation history:
 
-IMG
+<img width="1446" alt="Asking a follow-up question" src="https://github.com/user-attachments/assets/66ab2ede-cc44-49c8-8bee-75450645cdc5" />
 
 Ask it to write some code for you:
 
-IMG
+<img width="1448" alt="Asking the chatbot to write some code" src="https://github.com/user-attachments/assets/fd73f648-5df6-4ad0-add8-4a9780f294a8" />
 
 If the chatbot seems to go off-topic, you can press the "New Chat" button to clear the history and start a new conversation.
 
