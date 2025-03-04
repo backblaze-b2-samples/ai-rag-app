@@ -14,8 +14,6 @@ import os
 from pathlib import Path
 
 from langchain import globals as langchain_globals
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from ai_rag_app.rag import RAG
@@ -186,11 +184,11 @@ HUEY = {
 TOPIC = "Backblaze products"
 
 CHAT_MODEL: ModelSpec = {
-    'name': 'Llama',
+    'name': 'OpenAI',
     'llm': {
-        'cls': ChatOllama,
+        'cls': ChatOpenAI,
         'init_args': {
-            'model': "llama3.1:8b",
+            'model': "gpt-4o-mini",
         }
     },
 }
@@ -199,11 +197,11 @@ CHAT_MODEL: ModelSpec = {
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
-    'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/nomic',
+    'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/openai',
     'embeddings': {
-        'cls': OllamaEmbeddings,
+        'cls': OpenAIEmbeddings,
         'init_args': {
-            'model': "nomic-embed-text",
+            'model': "text-embedding-3-large",
         },
     },
 }
