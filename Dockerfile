@@ -1,6 +1,5 @@
-# Builder inspired by https://github.com/alexdmoss/distroless-python
-# This is similar to al3xos/python-builder:3.12-debian12 but multiplatform (arm64+amd64)
-FROM superpat7/python-builder:3.12-debian12 AS python-base
+# See https://github.com/alexdmoss/distroless-python
+FROM al3xos/python-builder:3.12-debian12 AS python-base
 
 FROM gcr.io/distroless/base-debian12:nonroot
 
