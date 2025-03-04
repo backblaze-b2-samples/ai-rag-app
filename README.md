@@ -246,6 +246,8 @@ Added 614 document(s) containing 2758 chunks to vector store; skipped 4 result(s
 Created LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs. "vectorstore" table contains 2758 rows
 ```
 
+You can ignore the warning message - we will not be running more than one LanceDB writer concurrently, so we don't need to prevent conflicting writes. 
+
 To test the vector database, you can use the custom `search` command:
 
 ```console
