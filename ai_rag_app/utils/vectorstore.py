@@ -28,7 +28,7 @@ def check_and_set_lancedb_endpoint_env_vars():
 
 
 def open_vectorstore(embeddings: EmbeddingsSpec, uri: str, check_table_exists: bool=False) -> LanceDB:
-    # check_and_set_lancedb_endpoint_env_vars()
+    check_and_set_lancedb_endpoint_env_vars()
 
     vectorstore = LanceDB(
         embedding=embeddings['cls'](**embeddings['init_args']),  # noqa - spurious unexpected argument warning
