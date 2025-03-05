@@ -1,10 +1,12 @@
+from typing import Tuple
+
 import boto3
 from django.core.management.base import BaseCommand
 from langchain_community.document_loaders import S3FileLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from ai_rag_app.utils.object_store import parse_s3_uri
-from ai_rag_app.utils.vectorstore import delete_vectorstore, create_vectorstore
+from ai_rag_app.utils.vectorstore import delete_vectorstore, open_vectorstore_and_table
 
 from mysite.settings import COLLECTION, TEXT_SPLITTER_CHUNK_SIZE, TEXT_SPLITTER_CHUNK_OVERLAP
 
@@ -72,11 +74,24 @@ class Command(BaseCommand):
         vector_store_location = options['vector_store_location']
 
         if options['mode'] == 'overwrite':
-            delete_vectorstore(b2_client, vector_store_location, self.stdout)
+            self.stdout.write(f'Deleting existing LanceDB vector store at {vector_store_location}')
+            delete_vectorstore(b2_client, vector_store_location)
+            self.stdout.write(f'Creating LanceDB vector store at {vector_store_location}')
+        else:
+            self.stdout.write(f'Opening LanceDB vector store at {vector_store_location}')
 
-        vectorstore = create_vectorstore(COLLECTION['embeddings'], vector_store_location, self.stdout)
-
+        vectorstore, lance_table = open_vectorstore_and_table(COLLECTION['embeddings'], vector_store_location)
         self.stdout.write(f'Loading data data from {source_data_location} in pages of {options["page_size"]} results')
+
+        if options['mode'] == 'append':
+            loaded_rows = (lance_table.search()
+                           .select(["metadata"])
+                           .limit(lance_table.count_rows())
+                           .to_list())
+            loaded_keys = sorted(set([parse_s3_uri(row['metadata']['source'])[1] for row in loaded_rows]))
+            self.stdout.write(f'In append mode. Existing vector store contains {len(loaded_keys)} documents.')
+        else:
+            loaded_keys = []
 
         bucket_name, source_data_path = parse_s3_uri(source_data_location)
         paginator = b2_client.get_paginator('list_objects_v2')
@@ -87,8 +102,14 @@ class Command(BaseCommand):
         )
 
         extensions = tuple(f'.{ext.strip()}' for ext in options['extensions'].split(','))
-        def should_load_file(key: str):
-            return options['load_all'] or key.lower().endswith(extensions)
+        def should_load_doc(key: str) -> Tuple[bool, str | None]:
+            nonlocal extensions, options, loaded_keys
+            if not options['load_all'] and not key.lower().endswith(extensions):
+                return False, f'extension is not in {extensions}'
+            elif key in loaded_keys:
+                return False, 'document is already in database'
+            else:
+                return True, None
 
         done = False
         page_count = 0
@@ -104,19 +125,21 @@ class Command(BaseCommand):
                               f'result(s) from {source_data_location}')
 
             docs = []
-            for obj in page['Contents']:
-                object_key = obj['Key']
-                if should_load_file(object_key):
-                    self.stdout.write(f'Loading {object_key}')
-                    loader = S3FileLoader(bucket_name, object_key)
-                    docs += loader.load()
-                    doc_count += 1
-                else:
-                    self.stdout.write(f'Skipping {object_key}')
-                    skip_count += 1
-                if options['max_results'] is not None and doc_count + skip_count == options['max_results']:
-                    done = True
-                    break
+            if 'Contents' in page:
+                for obj in page['Contents']:
+                    object_key = obj['Key']
+                    load_doc, reason = should_load_doc(object_key)
+                    if load_doc:
+                        self.stdout.write(f'Loading {object_key}')
+                        loader = S3FileLoader(bucket_name, object_key)
+                        docs += loader.load()
+                        doc_count += 1
+                    else:
+                        self.stdout.write(f'Skipping {object_key} because {reason}')
+                        skip_count += 1
+                    if options['max_results'] is not None and doc_count + skip_count == options['max_results']:
+                        done = True
+                        break
 
             self.stdout.write(f'Loaded batch of {len(docs)} document(s) from page')
 
@@ -124,8 +147,11 @@ class Command(BaseCommand):
             split_count += len(splits)
             self.stdout.write(f'Split batch into {len(splits)} chunks')
 
-            vectorstore.add_documents(splits)
-            self.stdout.write(f'Added chunks to vector store')
+            if len(splits) > 0:
+                vectorstore.add_documents(splits)
+                self.stdout.write(f'Added chunks to vector store')
+            else:
+                self.stdout.write(f'No chunks to add to vector store')
 
             page_count += 1
             if done:
@@ -133,7 +159,6 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Added {doc_count} document(s) containing {split_count} chunks to vector store; '
                           f'skipped {skip_count} result(s).')
-        table = vectorstore._table  # noqa
         self.stdout.write(
-            self.style.SUCCESS(f'Created LanceDB vector store at {vector_store_location}. "{table.name}" table contains {table.count_rows()} rows')
+            self.style.SUCCESS(f'LanceDB vector store at {vector_store_location} contains "{lance_table.name}" table with {lance_table.count_rows()} rows')
         )

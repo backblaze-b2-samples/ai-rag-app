@@ -5,6 +5,9 @@ from botocore.client import BaseClient
 
 
 def parse_s3_uri(uri: str) -> Tuple[str, str]:
+    """
+    Accept S3 URI, return bucket and key
+    """
     parsed = urlparse(uri, allow_fragments=False)
     if parsed.scheme != 's3':
         raise ValueError(f'{uri} is not an s3 URI')

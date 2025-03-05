@@ -1,6 +1,6 @@
 # Building a Conversational AI Chatbot Website with Backblaze B2 + LangChain 
 
-This app shows you how to implement a simple Conversational AI chatbot website that uses a large language model (LLM) and [retrieval augmented generation]() (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
+This app shows you how to implement a simple Conversational AI chatbot website that uses a large language model (LLM) and [retrieval augmented generation](https://python.langchain.com/docs/concepts/rag/) (RAG) to answer questions based on a collection of documents, such as PDFs, stored in a private [Backblaze B2 Cloud Object Storage](https://www.backblaze.com/cloud-storage) Bucket. The app builds on the techniques introduced in the [Retrieval-Augmented Generation with Backblaze B2](https://github.com/backblaze-b2-samples/ai-rag-examples) samples.
 
 You can ingest your own set of documents from Backblaze B2 or use a prebuilt vector store built from the Backblaze documentation. Once you have configured your vector store, you can use the app's web UI to ask questions; the app will use the vector database and LLM to generate answers. The RAG chain implements [chat history](https://python.langchain.com/docs/concepts/chat_history/), so you can refer back to earlier exchanges in a natural way.
 
@@ -265,7 +265,36 @@ Added 614 document(s) containing 2758 chunks to vector store; skipped 4 result(s
 Created LanceDB vector store at s3://blze-ev-ai-rag-app/vectordb/docs. "vectorstore" table contains 2758 rows
 ```
 
-You can ignore the warning message - we will not be running more than one LanceDB writer concurrently, so we don't need to prevent conflicting writes. 
+You can ignore the warning message - we will not be running more than one LanceDB writer concurrently, so we don't need to prevent conflicting writes.
+
+The `load_vector_store` command includes some useful options for controlling the process, including overriding the source data and vector store locations configured in `mysite/settings.py`:
+
+```console
+% python manage.py load_vector_store --help
+usage: manage.py load_vector_store [-h] [--page-size [PAGE_SIZE]] [--max-results [MAX_RESULTS]] [--mode [{overwrite,append}]] [--extensions [EXTENSIONS]] [--load-all] [--source-data-location [SOURCE_DATA_LOCATION]] [--vector-store-location [VECTOR_STORE_LOCATION]] [--version]
+                                   [-v {0,1,2,3}] [--settings SETTINGS] [--pythonpath PYTHONPATH] [--traceback] [--no-color] [--force-color] [--skip-checks]
+
+Loads data from the configured bucket into the vector database
+
+options:
+  -h, --help            show this help message and exit
+  --page-size [PAGE_SIZE]
+                        Page size for retrieving and processing data. Default = Max = 1000
+  --max-results [MAX_RESULTS]
+                        Maximum number of results to process. Default = process all results
+  --mode [{overwrite,append}]
+                        Overwrite existing vector store or append to it. Default = overwrite
+  --extensions [EXTENSIONS]
+                        Comma-separated list of file extensions to load. Default = pdf
+  --load-all            Load all documents regardless of file extension.
+  --source-data-location [SOURCE_DATA_LOCATION]
+                        Override source data location.
+  --vector-store-location [VECTOR_STORE_LOCATION]
+                        Override vector store location.
+  ...
+```
+
+When `--mode` is set to `append`, the `load_vector_store` command adds only those documents that have not already been loaded.
 
 To test the vector database, you can use the custom `search_vector_store` command:
 
@@ -277,6 +306,26 @@ Found 4 docs in 2.30 seconds
 2025-03-01 02:38:11,074 ai_rag_app.management.commands.search INFO     
 page_content='Parts of a large file can be uploaded and copied in parallel, which can significantly reduce the time it takes to upload terabytes of data. Each part can be  anywhere from 5 MB to 5 GB, and you can pick the size that is most convenient for your application. For best upload performance, Backblaze recommends that you use the recommendedPartSize parameter that is returned by the b2_authorize_account operation.  To upload larger files and data sets, you can use the command-line interface (CLI), the Native API, or an integration, such as Cyberduck.  Usage for Large Files  Generally, large files are treated the same as small files. The costs for the API calls are the same.  You are charged for storage for the parts that you uploaded or copied. Usage is counted from the time the part is stored. When you call the b2_finish_large_file' metadata={'source': 's3://blze-ev-ai-rag-app/pdfs/cloud_storage/cloud-storage-large-files.pdf'}
 ...
+```
+
+The `search_vector_store` command also allows you to override the vector store location configured in `mysite/settings.py`:
+
+```console
+% python manage.py search_vector_store --help
+usage: manage.py search_vector_store [-h] [--max-results [MAX_RESULTS]] [--vector-store-location [VECTOR_STORE_LOCATION]] [--version] [-v {0,1,2,3}] [--settings SETTINGS] [--pythonpath PYTHONPATH] [--traceback] [--no-color] [--force-color] [--skip-checks] search-string
+
+Searches the vector database for a string
+
+positional arguments:
+  search-string         Search the database for this string
+
+options:
+  -h, --help            show this help message and exit
+  --max-results [MAX_RESULTS]
+                        Maximum number of results to process. Default = process all results
+  --vector-store-location [VECTOR_STORE_LOCATION]
+                        Override vector store location.
+  ...
 ```
 
 ## Run the Web App

@@ -26,10 +26,17 @@ class Command(BaseCommand):
             help="Maximum number of results to process. Default = process all results",
         )
 
+        parser.add_argument(
+            '--vector-store-location',
+            default=COLLECTION['vector_store_location'],
+            nargs='?',
+            help=f'Override vector store location.',
+        )
+
     def handle(self, *args, **options):
-        vector_db_uri = COLLECTION['vector_store_location']
-        logger.info(f'Opening vector store at {vector_db_uri}')
-        vectorstore = open_vectorstore(COLLECTION['embeddings'], vector_db_uri, check_table_exists=True)
+        vector_store_location = options['vector_store_location']
+        logger.info(f'Opening vector store at {vector_store_location}')
+        vectorstore = open_vectorstore(COLLECTION['embeddings'], vector_store_location, check_table_exists=True)
 
         start_time = perf_counter()
         search_results = vectorstore.similarity_search(options['search-string'], k=options['max_results'])
