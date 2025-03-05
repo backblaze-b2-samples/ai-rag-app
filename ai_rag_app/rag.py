@@ -18,30 +18,10 @@ from ai_rag_app.utils.vectorstore import open_vectorstore
 
 logger = logging.getLogger(__name__)
 
-class AbstractRAG(ABC):
-    @abstractmethod
-    def invoke(self, session_key: str, question: str) -> BaseMessage:
-        pass
-
-    @abstractmethod
-    def new_chat(self, session_id: str) -> None:
-        pass
-
-    @property
-    def store(self) -> dict[str, BaseChatMessageHistory]:
-        return {}
-
-    @property
-    def collection_name(self) -> str:
-        return ''
-
-    @property
-    def model_name(self) -> str:
-        return ''
 
 # Based on https://python.langchain.com/docs/tutorials/rag/
 # and https://python.langchain.com/v0.2/docs/tutorials/chatbot/
-class RAG(AbstractRAG):
+class RAG:
     def __init__(self, collection_spec: CollectionSpec, model_spec: ModelSpec):
         self._store: dict[str, BaseChatMessageHistory] = {}
         self._chain: Runnable = self._create_chain(
