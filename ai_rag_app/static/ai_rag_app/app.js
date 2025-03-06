@@ -113,4 +113,5 @@ document.getElementById("new-chat").addEventListener("click", newChat);
 window.addEventListener("load", function() {
   historyScrollToBottom();
   removeNewChat();
+  document.getElementById("question").focus();
 });
