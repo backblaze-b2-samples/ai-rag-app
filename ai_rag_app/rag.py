@@ -1,5 +1,4 @@
 import logging
-from abc import ABC, abstractmethod
 from operator import itemgetter
 
 from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
@@ -43,7 +42,7 @@ class RAG:
         vector_db_uri = collection_spec['vector_store_location']
         logger.info(f'Opening {collection_spec["name"]} vector store at {vector_db_uri}')
         vectorstore = open_vectorstore(collection_spec['embeddings'], vector_db_uri, check_table_exists=True)
-        return vectorstore.as_retriever()
+        return vectorstore.as_retriever(search_kwargs={'k': collection_spec['search_k']})
 
     @staticmethod
     def _get_session_history(store: dict[str, BaseChatMessageHistory], session_id: str) -> BaseChatMessageHistory:
@@ -53,14 +52,17 @@ class RAG:
 
     @staticmethod
     def _create_chain(model: BaseChatModel, retriever: BaseRetriever, store: dict[str, BaseChatMessageHistory]) -> Runnable:
+        # These are the basic instructions for the LLM
         system_prompt = (
             "Use the following pieces of context and the message history to "
             "answer the question at the end. If you don't know the answer, "
             "just say that you don't know, don't try to make up an answer. "
             "\n\n"
-            "Context: {context}")
+            "Context: {context}"
+        )
 
-        prompt = ChatPromptTemplate(
+        # The prompt template brings together the system prompt, context, message history and the user's question
+        prompt_template = ChatPromptTemplate(
             [
                 ("system", system_prompt),
                 MessagesPlaceholder(variable_name="history", optional=True, n_messages=10),
@@ -80,7 +82,7 @@ class RAG:
                 "question": itemgetter("question"),
                 "history": itemgetter("history"),
             }
-            | prompt
+            | prompt_template
             | model
             | StrOutputParser()
             | RunnableLambda(lambda x: {"output": x})
@@ -89,7 +91,7 @@ class RAG:
         # Give the chain a name so the handler can see it
         named_chain: Runnable[Input, Output] = chain.with_config(run_name="my_chain")
 
-        # Add message history
+        # Add message history management
         return RunnableWithMessageHistory(
             named_chain,
             lambda session_id: RAG._get_session_history(store, session_id),

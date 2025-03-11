@@ -114,7 +114,8 @@ has been removed, and there is no need to run `python manage.py migrate` or `pyt
 
 Towards the bottom of `mysite/settings.py`, you will see the configuration for the LLM and vector store embeddings. The `RAG` 
 class, in `ai_rag_app/rag.py`, uses these values to create instances of the API wrapper objects. Note that the locations in the
-`COLLECTION` configuration in the sample code point to the Backblaze documentation PDFs and vector store. You can use them with the read-only credentials above or change them to match your environment.  
+`COLLECTION` configuration in the sample code point to the Backblaze documentation PDFs and vector store. You can use them with 
+the read-only credentials above or change them to match your environment.  
 
 ```python
 # This is the text that appears in the web UI: "Ask me about {TOPIC}". You can change
@@ -132,10 +133,12 @@ CHAT_MODEL: ModelSpec = {
 }
 
 # Change source_data_location and vector_store_location to match your environment
+# search_k is the number of results to return when searching the vector store
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
     'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs',
+    'search_k': 4,
     'embeddings': {
         'cls': OpenAIEmbeddings,
         'init_args': {
@@ -216,6 +219,7 @@ COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://my-bucket/my_data',
     'vector_store_location': 's3://my-bucket/vectordb/docs',
+    'search_k': 4,
     'embeddings': {
         'cls': GoogleGenerativeAIEmbeddings,
         'init_args': {
@@ -573,10 +577,12 @@ CHAT_MODEL: ModelSpec = {
 }
 
 # Change source_data_location and vector_store_location to match your environment
+# search_k is the number of results to return when searching the vector store  
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
     'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/nomic',
+    'search_k': 4,
     'embeddings': {
         'cls': OllamaEmbeddings,
         'init_args': {

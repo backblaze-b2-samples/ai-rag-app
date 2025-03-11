@@ -12,6 +12,7 @@ class CollectionSpec(TypedDict):
     name: str
     source_data_location: str
     vector_store_location: str
+    search_k: int
     embeddings: EmbeddingsSpec
 
 class LLMSpec(TypedDict):

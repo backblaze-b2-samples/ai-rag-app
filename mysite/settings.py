@@ -194,10 +194,12 @@ CHAT_MODEL: ModelSpec = {
 }
 
 # Change source_data_location and vector_store_location to match your environment
+# search_k is the number of results to return when searching the vector store
 COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
     'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/openai',
+    'search_k': 4,
     'embeddings': {
         'cls': OpenAIEmbeddings,
         'init_args': {
@@ -211,5 +213,9 @@ COLLECTION: CollectionSpec = {
 if os.environ.get('RUN_MAIN') or os.environ.get('SERVER_SOFTWARE'):
     RAG_INSTANCE = RAG(COLLECTION, CHAT_MODEL)
 
-TEXT_SPLITTER_CHUNK_OVERLAP = 200
+
+# Maximum size of chunks to for splitting documents
 TEXT_SPLITTER_CHUNK_SIZE = 1000
+
+# Overlap in characters between chunks
+TEXT_SPLITTER_CHUNK_OVERLAP = 200
