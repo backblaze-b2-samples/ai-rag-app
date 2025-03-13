@@ -16,7 +16,7 @@ def index(request: HttpRequest) -> HttpResponse:
     if request.session.session_key in settings.RAG_INSTANCE.store:
         messages = copy.deepcopy(settings.RAG_INSTANCE.store[request.session.session_key].messages)
         for message in messages:
-            message.content = markdown_to_html(message.content)
+            message.content = markdown_to_html(message.content.strip())
     else:
         messages = []
     context = {

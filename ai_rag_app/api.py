@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 @api_view(['POST'])
 @use_session_key
 def ask_question(request: Request) -> Response:
-    output = settings.RAG_INSTANCE.invoke(request.session.session_key, request.data['question'])
-    return Response({"answer": markdown_to_html(output.content), "elapsed": output.response_metadata["elapsed"]})
+    response = settings.RAG_INSTANCE.invoke(request.session.session_key, request.data['question'])
+    return Response({"answer": markdown_to_html(response.content), "elapsed": response.response_metadata["elapsed"]})
 
 
 class WebhookAuthentication(BaseAuthentication):

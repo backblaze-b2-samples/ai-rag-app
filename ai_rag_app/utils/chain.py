@@ -17,11 +17,10 @@ class ChainElapsedTime(BaseCallbackHandler):
     """
     Add the time taken to execute a named chain to its output
     """
-    def __init__(self, name, *, output_message_key="output", **kwargs):
+    def __init__(self, name, **kwargs):
         super().__init__(**kwargs)
         self.runs = {}
         self.name = name
-        self.output_message_key = output_message_key
 
     def on_chain_start(
             self,
@@ -41,7 +40,7 @@ class ChainElapsedTime(BaseCallbackHandler):
 
     def on_chain_end(
             self,
-            outputs: dict[str, Any],
+            outputs: BaseMessage,
             run_id: UUID,
             parent_run_id: UUID | None = None,
             **kwargs,
@@ -52,11 +51,7 @@ class ChainElapsedTime(BaseCallbackHandler):
         run = self.runs.get(run_id)
         if run:
             elapsed = perf_counter() - self.runs.pop(run_id)
-            output_val = outputs[self.output_message_key]
-            if isinstance(output_val, str):
-                outputs[self.output_message_key] = AIMessage(content=output_val, response_metadata={"elapsed": elapsed})
-            elif isinstance(output_val, BaseMessage):
-                outputs[self.output_message_key].response_metadata["elapsed"] = elapsed
+            outputs.response_metadata["elapsed"] = elapsed
 
     def on_chain_error(
             self,
@@ -72,7 +67,7 @@ class ChainElapsedTime(BaseCallbackHandler):
             print(f"Chain error: {error}: {stack_trace}")
 
 
-def log_input(prefix: str, pretty=False) -> RunnableLambda:
+def log_data(prefix: str, pretty=False) -> RunnableLambda:
     """
     Log the data flowing through the chain at a given point
     """
@@ -81,3 +76,12 @@ def log_input(prefix: str, pretty=False) -> RunnableLambda:
         logger.debug(f'{prefix}: {data_out}, {kwargs}')
         return data
     return RunnableLambda(dumper)
+
+
+def log_chain(chain, level, config):
+    """
+    Log an ASCII representation of the chain
+    """
+    if logger.isEnabledFor(level):
+        graph_ascii = chain.get_graph(config=config).draw_ascii()
+        logger.log(level, f'Created chain: \n{graph_ascii}')

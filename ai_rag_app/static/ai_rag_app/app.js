@@ -107,6 +107,21 @@ function removeNewChat() {
   }
 }
 
+// Trim spurious newlines and any other whitespace from copied data
+function copyListener(event) {
+  const range = window.getSelection().getRangeAt(0),
+      rangeContents = range.cloneContents();
+
+  // rangeContents.innerText and innerHTML are undefined, so we need to put it in a div
+  const divElement = document.createElement('div')
+  divElement.appendChild(rangeContents);
+
+  event.clipboardData.setData("text/plain", divElement.innerText.trim());
+  event.clipboardData.setData("text/html", divElement.innerHTML);
+  divElement.remove()
+  event.preventDefault();
+}
+
 document.getElementById("question").addEventListener("keydown", submitOnEnter);
 document.getElementById("new-chat").addEventListener("click", newChat);
 
@@ -115,3 +130,5 @@ window.addEventListener("load", function() {
   removeNewChat();
   document.getElementById("question").focus();
 });
+
+document.addEventListener("copy", copyListener);

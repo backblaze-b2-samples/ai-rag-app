@@ -12,7 +12,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.runnables.utils import Output, Input
 
 from ai_rag_app.types import CollectionSpec, ModelSpec
-from ai_rag_app.utils.chain import ChainElapsedTime, log_input
+from ai_rag_app.utils.chain import ChainElapsedTime, log_data, log_chain
 from ai_rag_app.utils.vectorstore import open_vectorstore
 
 logger = logging.getLogger(__name__)
@@ -77,27 +77,30 @@ class RAG:
                 "context": (
                     itemgetter("question")
                     | retriever
-                    | log_input('Documents from vector store', pretty=True)
+                    | log_data('Documents from vector store', pretty=True)
                 ),
                 "question": itemgetter("question"),
                 "history": itemgetter("history"),
             }
             | prompt_template
             | model
-            | StrOutputParser()
-            | RunnableLambda(lambda x: {"output": x})
+            | log_data('Output from model', pretty=True)
         )
 
         # Give the chain a name so the handler can see it
         named_chain: Runnable[Input, Output] = chain.with_config(run_name="my_chain")
 
         # Add message history management
-        return RunnableWithMessageHistory(
+        history_chain = RunnableWithMessageHistory(
             named_chain,
             lambda session_id: RAG._get_session_history(store, session_id),
             input_messages_key="question",
             history_messages_key="history",
         )
+
+        log_chain(history_chain, logging.DEBUG, {"configurable": {'session_id': 'dummy'}})
+
+        return history_chain
 
     def invoke(self, session_key: str, question: str) -> BaseMessage:
         logger.debug(f'Synchronously invoking the chain with question: {question}')
@@ -112,9 +115,8 @@ class RAG:
                 ]
             },
         )
-        logger.debug(f'Received answer: {response["output"].content}')
-
-        return response["output"]
+        logger.debug(f'Received response: {response} in {response.response_metadata["elapsed"]:.1f} seconds')
+        return response
 
     def new_chat(self, session_id: str) -> None:
         self._store[session_id] = InMemoryChatMessageHistory()
