@@ -26,8 +26,8 @@ FROM al3xos/python-builder:3.12-debian12 AS python-base
 FROM gcr.io/distroless/base-debian12:nonroot
 
 LABEL authors="pat@backblaze.com"
-LABEL org.opencontainers.image.source="https://github.com/backblaze-b2-samples/ai-rag-demo-share"
-LABEL org.opencontainers.image.description="Just for sharing internally. DO NOT MAKE PUBLIC!"
+LABEL org.opencontainers.image.source="https://github.com/backblaze-b2-samples/ai-rag-app"
+LABEL org.opencontainers.image.description="Create a conversational AI chatbot web app that answers questions based on data stored in a Backblaze B2 bucket"
 
 # Python etc
 COPY --from=python-base /usr/local/lib/ /usr/local/lib/
