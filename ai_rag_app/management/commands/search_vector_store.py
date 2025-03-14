@@ -4,7 +4,7 @@ from time import perf_counter
 from django.core.management import BaseCommand
 
 from ai_rag_app.utils.vectorstore import open_vectorstore
-from mysite.settings import COLLECTION
+from mysite.settings import DOCUMENT_COLLECTION
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
         parser.add_argument(
             '--vector-store-location',
-            default=COLLECTION['vector_store_location'],
+            default=DOCUMENT_COLLECTION['vector_store_location'],
             nargs='?',
             help=f'Override vector store location.',
         )
@@ -36,7 +36,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         vector_store_location = options['vector_store_location']
         logger.info(f'Opening vector store at {vector_store_location}')
-        vectorstore = open_vectorstore(COLLECTION['embeddings'], vector_store_location, check_table_exists=True)
+        vectorstore = open_vectorstore(DOCUMENT_COLLECTION['embeddings'], vector_store_location, check_table_exists=True)
 
         start_time = perf_counter()
         search_results = vectorstore.similarity_search(options['search-string'], k=options['max_results'])

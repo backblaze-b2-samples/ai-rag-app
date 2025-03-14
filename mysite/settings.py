@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import logging.config
 import os
 from pathlib import Path
+from xml.dom.expatbuilder import DOCUMENT_NODE
 
 from langchain import globals as langchain_globals
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -195,7 +196,7 @@ CHAT_MODEL: ModelSpec = {
 
 # Change source_data_location and vector_store_location to match your environment
 # search_k is the number of results to return when searching the vector store
-COLLECTION: CollectionSpec = {
+DOCUMENT_COLLECTION: CollectionSpec = {
     'name': 'Docs',
     'source_data_location': 's3://blze-ev-ai-rag-app/pdfs',
     'vector_store_location': 's3://blze-ev-ai-rag-app/vectordb/docs/openai',
@@ -211,7 +212,7 @@ COLLECTION: CollectionSpec = {
 # We only want to initialize the RAG instance when we're being started by runserver (RUN_MAIN)
 # or gunicorn (SERVER_SOFTWARE) and not by load_vector_store
 if os.environ.get('RUN_MAIN') or os.environ.get('SERVER_SOFTWARE'):
-    RAG_INSTANCE = RAG(COLLECTION, CHAT_MODEL)
+    RAG_INSTANCE = RAG(DOCUMENT_COLLECTION, CHAT_MODEL)
 
 
 # Maximum size of chunks to for splitting documents

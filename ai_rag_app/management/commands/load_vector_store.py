@@ -8,7 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from ai_rag_app.utils.object_store import parse_s3_uri
 from ai_rag_app.utils.vectorstore import delete_vectorstore, open_vectorstore_and_table
 
-from mysite.settings import COLLECTION, TEXT_SPLITTER_CHUNK_SIZE, TEXT_SPLITTER_CHUNK_OVERLAP
+from mysite.settings import DOCUMENT_COLLECTION, TEXT_SPLITTER_CHUNK_SIZE, TEXT_SPLITTER_CHUNK_OVERLAP
 
 
 class Command(BaseCommand):
@@ -54,14 +54,14 @@ class Command(BaseCommand):
 
         parser.add_argument(
             '--source-data-location',
-            default=COLLECTION['source_data_location'],
+            default=DOCUMENT_COLLECTION['source_data_location'],
             nargs='?',
             help=f'Override source data location.',
         )
 
         parser.add_argument(
             '--vector-store-location',
-            default=COLLECTION['vector_store_location'],
+            default=DOCUMENT_COLLECTION['vector_store_location'],
             nargs='?',
             help=f'Override vector store location.',
         )
@@ -80,7 +80,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'Opening LanceDB vector store at {vector_store_location}')
 
-        vectorstore, lance_table = open_vectorstore_and_table(COLLECTION['embeddings'], vector_store_location)
+        vectorstore, lance_table = open_vectorstore_and_table(DOCUMENT_COLLECTION['embeddings'], vector_store_location)
         self.stdout.write(f'Loading data data from {source_data_location} in pages of {options["page_size"]} results')
 
         if options['mode'] == 'append':
