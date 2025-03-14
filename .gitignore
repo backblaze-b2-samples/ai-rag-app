@@ -167,3 +167,5 @@ cython_debug/
 service_account_key.json
 ai-rag-app-*.zip
 creds/
+
+deploy.sh
