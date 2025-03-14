@@ -605,7 +605,7 @@ are many ways you could extend the base application to better meet your needs. H
 generate a clickable `https` URL from the S3 URL and provide links to the documents alongside the LLM's response in the web UI.
 * The app uses the default Django support for synchronous I/O and LangChain's synchronous methods, for example, 
 [`invoke()`](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.invoke). 
-You could port the app to use [Django's asynchronous support](https://docs.djangoproject.com/en/5.1/topics/async/) and
+* You could port the app to use [Django's asynchronous support](https://docs.djangoproject.com/en/5.1/topics/async/) and
 LangChain's asynchronous methods, such as [`ainvoke`](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.ainvoke).
 
 Again, in order to get you started quickly, we streamlined the application in several ways. There are a few areas to attend to 
