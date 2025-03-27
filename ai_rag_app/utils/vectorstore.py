@@ -27,11 +27,6 @@ from typing import Tuple
 import botocore.session
 import lancedb
 from botocore.client import BaseClient
-# WORKAROUND
-# langchain_community.vectorstores.LanceDB references lancedb.remote.table.RemoteTable without importing it,
-# so we have to import it here!
-# See https://github.com/langchain-ai/langchain/issues/30124
-import lancedb.remote.table
 from langchain_community.vectorstores import LanceDB
 
 from ai_rag_app.types import EmbeddingsSpec
