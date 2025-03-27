@@ -153,7 +153,12 @@ class Command(BaseCommand):
                     load_doc, reason = should_load_doc(object_key)
                     if load_doc:
                         self.stdout.write(f'Loading {object_key}')
-                        loader = S3FileLoader(bucket_name, object_key)
+                        # We know the PDFs contain text, don't need any OCR etc, so we can specify the 'fast'
+                        # strategy rather than `auto`.
+                        # Don't skip any tables in the docs.
+                        # Tell unstructured that the content is English, so it doesn't need to guess.
+                        loader = S3FileLoader(bucket_name, object_key,
+                                              strategy='fast', skip_infer_table_types=[], languages=['english'])
                         docs += loader.load()
                         doc_count += 1
                     else:
