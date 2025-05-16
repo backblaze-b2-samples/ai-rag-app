@@ -6,7 +6,7 @@ You can ingest your own set of documents from Backblaze B2 or use a prebuilt vec
 
 The sample code uses [OpenAI GPT‑4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/), and I'll explain in this document how you can easily configure an alternate model such as [Google Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#2.0-flash), [DeepSeek V3](https://api-docs.deepseek.com/news/news1226), or run a local LLM using a technology such as [Ollama](https://ollama.com/). The web UI uses [ChatGPT](https://chatgpt.com/) as inspiration, with some additional instrumentation - each answer includes the execution time of the RAG chain.
 
-[![Short video of chatbot in action](TBD)](https://www.youtube.com/watch?v=vBFwUGL_DaQ)
+[![Short video of chatbot in action](https://github.com/user-attachments/assets/08640d74-6f0b-4feb-9fcb-eedf58ac24ad)](https://www.youtube.com/watch?v=vBFwUGL_DaQ)
 
 The app is written in Python and leverages the [Django web framework](https://www.djangoproject.com/),  [LangChain AI framework](https://python.langchain.com/docs/introduction/) and [LanceDB vector database](https://lancedb.github.io/lancedb/), all of which are open source. We used the LangChain tutorials [Build a Retrieval Augmented Generation (RAG) App: Part 1](https://python.langchain.com/docs/tutorials/rag/), [Build a Local RAG Application](https://python.langchain.com/v0.2/docs/tutorials/local_rag/), and [Build a Chatbot](https://python.langchain.com/v0.2/docs/tutorials/chatbot/) in creating the app.
 
