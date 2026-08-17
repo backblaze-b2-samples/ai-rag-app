@@ -39,7 +39,7 @@ function appendText(text, type, elapsed) {
   const newDiv = document.createElement('div');
   newDiv.classList.add(type);
   const textParagraph = document.createElement('p');
-  textParagraph.innerHTML = text;
+  textParagraph.textContent = text;
   newDiv.appendChild(textParagraph);
   if (type === "ai") {
     const timePara = document.createElement('p');
