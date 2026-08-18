@@ -143,7 +143,7 @@ class Command(BaseCommand):
             chunk_overlap=TEXT_SPLITTER_CHUNK_OVERLAP
         )
         for page in page_iterator:
-            self.stdout.write(f'Successfully retrieved page {page_count + 1} containing {page['KeyCount']} '
+            self.stdout.write(f"Successfully retrieved page {page_count + 1} containing {page['KeyCount']} "
                               f'result(s) from {source_data_location}')
 
             docs = []

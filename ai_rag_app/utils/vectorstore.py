@@ -44,7 +44,7 @@ def check_and_set_lancedb_endpoint_env_vars():
     # LanceDB does not respect AWS_PROFILE, so, if AWS_PROFILE is set and not all of the four individual
     # AWS environment variables are set, set them here.
     if 'AWS_PROFILE' in os.environ and len(list(set(AWS_ENV_VARS) & set(os.environ))) < len(AWS_ENV_VARS):
-        logger.debug(f'Populating AWS environment variables from the {os.environ['AWS_PROFILE']} profile')
+        logger.debug(f"Populating AWS environment variables from the {os.environ['AWS_PROFILE']} profile")
         session = botocore.session.get_session()
         profile = session.profile
         os.environ['AWS_ACCESS_KEY_ID'] = session.full_config['profiles'][profile]['aws_access_key_id']
