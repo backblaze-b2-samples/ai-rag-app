@@ -34,16 +34,64 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import logging.config
 import os
 from pathlib import Path
-from xml.dom.expatbuilder import DOCUMENT_NODE
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from langchain import globals as langchain_globals
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from ai_rag_app.rag import RAG
-from ai_rag_app.types import CollectionSpec, ModelSpec, LLMSpec
+from ai_rag_app.types import CollectionSpec, ModelSpec
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    if value.lower() in {'1', 'true', 't', 'yes', 'y', 'on'}:
+        return True
+    if value.lower() in {'0', 'false', 'f', 'no', 'n', 'off'}:
+        return False
+    raise ImproperlyConfigured(f'{name} must be true or false')
+
+
+def _database_config():
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return {
+            'default': dj_database_url.parse(
+                database_url,
+                conn_max_age=60,
+                conn_health_checks=True,
+            )
+        }
+
+    sqlite_database_path = os.getenv('AI_RAG_APP_SQLITE_PATH')
+    if sqlite_database_path:
+        return {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': sqlite_database_path,
+                'OPTIONS': {
+                    'timeout': 20,
+                },
+            },
+        }
+
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            'Set DATABASE_URL to a durable shared database before running with DJANGO_DEBUG=false. '
+            'For a single-writer SQLite deployment, set AI_RAG_APP_SQLITE_PATH to a persistent volume path.'
+        )
+
+    return {
+        'default': {
+            'ENGINE': 'django.db.backends.dummy',
+        },
+    }
 
 
 # Quick-start development settings - unsuitable for production
@@ -53,7 +101,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-agg6&-%(fcgvcv&gk16oxdq5x7bi=wjevix^ugs6y9^d9a2-cw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG', True)
 
 ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', '.trycloudflare.com', '172.16.60.26']
 
@@ -101,12 +149,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    },
-}
+# The web UI stores sessions in cache and chat history in memory, so it does not
+# store user/application data in Django's relational database. Keep accidental
+# database use fail-fast in local development, and require an explicit durable
+# database for production or database-backed Huey workers.
+DATABASES = _database_config()
 
 
 # Password validation
@@ -202,7 +249,9 @@ if os.getenv('PYARROW_TRACE_S3', default=False):
 
 
 
-# huey task queue integration with Django
+# huey task queue integration with Django. DjangoORMHuey stores queue state in
+# the configured database, so production workers require DATABASE_URL or an
+# explicit persistent AI_RAG_APP_SQLITE_PATH and migrations before startup.
 HUEY = {
     'huey_class': 'huey_django_orm.storage.DjangoORMHuey',
     'immediate': False,

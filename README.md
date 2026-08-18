@@ -109,8 +109,32 @@ Note that you must still supply your own API key for OpenAI or an alternate onli
 
 ### Django Configuration
 
-Since the app does not need the database, some of the configuration usually found in [`mysite/settings.py`](mysite/settings.py)
-has been removed, and there is no need to run `python manage.py migrate` or `python manage.py createsuperuser`.
+The web chat path does not store user or application data in Django's relational database. Sessions use Django's
+cache-backed session engine, and conversation history is stored in memory. [`mysite/settings.py`](mysite/settings.py)
+still defines an explicit default database so Django and optional database-backed integrations have a clear contract.
+
+For local development, when `DJANGO_DEBUG` is unset or true and no database environment variable is present, the app uses
+Django's dummy database backend so accidental database access fails immediately. For production, set `DJANGO_DEBUG=false`
+and configure durable database storage before starting the app:
+
+```dotenv
+DJANGO_DEBUG=false
+DATABASE_URL=postgres://<user>:<password>@<host>:5432/<database>
+```
+
+If you deliberately deploy with SQLite, set `AI_RAG_APP_SQLITE_PATH` to a path on a persistent writable volume and run a
+single-writer topology. Do not place a production SQLite database inside the application checkout or container layer.
+
+```dotenv
+DJANGO_DEBUG=false
+AI_RAG_APP_SQLITE_PATH=/var/lib/ai-rag-app/db.sqlite3
+```
+
+Run `python manage.py migrate` before routing production traffic or starting database-backed Huey workers. For rolling
+deploys, keep database and Huey queue schema changes backward compatible across the old and new versions, and verify
+queued work survives worker restarts before scaling out.
+
+There is no need to run `python manage.py createsuperuser` unless you add Django authentication.
 
 Towards the bottom of `mysite/settings.py`, you will see the configuration for the LLM and vector store embeddings. The `RAG` 
 class, in `ai_rag_app/rag.py`, uses these values to create instances of the API wrapper objects. Note that the locations in the
@@ -611,10 +635,11 @@ LangChain's asynchronous methods, such as [`ainvoke`](https://python.langchain.c
 Again, in order to get you started quickly, we streamlined the application in several ways. There are a few areas to attend to 
 if you wish to run this app in a production setting:  
 
-* The app does not use a database for user accounts, or any other data, so there is no authentication. All access is anonymous.
-If you wished to have users log in, you would need to restore Django's
+* The app does not use Django authentication, so all access is anonymous. The configured database is only for Django
+framework requirements and optional database-backed integrations such as Huey. If you wished to have users log in, you
+would need to restore Django's
 [`AuthenticationMiddleware`](https://docs.djangoproject.com/en/5.1/ref/middleware/#module-django.contrib.auth.middleware) 
-class to the `MIDDLEWARE` configuration and [configure a database](https://docs.djangoproject.com/en/5.1/ref/databases/).
+class to the `MIDDLEWARE` configuration and use a durable database for user state.
 * Sessions are stored in memory. As explained above, [you can use Gunicorn to scale the application to multiple threads](#running-in-gunicorn), 
 but you would need to [configure a Django session backend](https://docs.djangoproject.com/en/5.1/topics/http/sessions/) to 
 run the app in multiple processes or on multiple hosts.
